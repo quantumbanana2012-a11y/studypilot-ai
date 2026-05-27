@@ -2,14 +2,10 @@ services:
   - type: web
     name: studypilot-ai
     env: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
-    disk:
-      name: studypilot-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -40,7 +36,7 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: DATABASE_PATH
-        value: /var/data/studypilot-db.json
+        value: ./data/studypilot-db.json
       - key: ADS_ENABLED
         value: false
       - key: ADSENSE_CLIENT_ID
