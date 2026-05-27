@@ -125,6 +125,7 @@ let modelConfig = {
 };
 let billingConfig = {
   ready: false,
+  razorpayReady: false,
   apiBase: ""
 };
 let adsConfig = {
@@ -568,8 +569,21 @@ async function loadBillingConfig() {
       // Try the next endpoint.
     }
   }
-  billingConfig = { ready: false, apiBase: "" };
+  billingConfig = { ready: false, razorpayReady: false, apiBase: "" };
   renderIntegrations();
+}
+
+function loadRazorpayScript() {
+  if (window.Razorpay) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Razorpay checkout could not load."));
+    document.head.appendChild(script);
+  });
 }
 
 function loadAdSenseScript() {
@@ -660,16 +674,64 @@ async function loadAdsConfig() {
 }
 
 async function startCheckout(plan) {
-  if (!billingConfig.ready) {
+  if (!billingConfig.ready && !billingConfig.razorpayReady) {
     setPlan(plan);
-    upgradeNote.textContent = "Demo mode: Stripe is not configured yet, so this plan was unlocked locally.";
+    upgradeNote.textContent = "Demo mode: payments are not configured yet, so this plan was unlocked locally.";
     return;
   }
 
   if (!currentUser) {
-    upgradeNote.textContent = "Create an account first so Stripe can attach the subscription to your StudyPilot plan.";
+    upgradeNote.textContent = "Create an account first so the payment can attach to your StudyPilot plan.";
     authEmail.focus();
     return;
+  }
+
+  if (billingConfig.razorpayReady) {
+    try {
+      await loadRazorpayScript();
+      const response = await fetch(`${billingConfig.apiBase}/api/billing/razorpay/order`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ plan })
+      });
+      const order = await response.json();
+      if (!response.ok) {
+        throw new Error(order.error || "Razorpay order failed.");
+      }
+
+      const checkout = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: order.name,
+        description: order.description,
+        order_id: order.orderId,
+        prefill: order.prefill,
+        theme: { color: "#d7b35f" },
+        handler: async (payment) => {
+          const verifyResponse = await fetch(`${billingConfig.apiBase}/api/billing/razorpay/verify`, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ ...payment, plan })
+          });
+          const payload = await verifyResponse.json();
+          if (!verifyResponse.ok) {
+            upgradeNote.textContent = payload.error || "Payment verification failed.";
+            return;
+          }
+          currentUser = payload.user;
+          currentPlan = payload.user.plan || plan;
+          localStorage.setItem("studyPilotPlan", currentPlan);
+          applyPlanState();
+          hideUpgrade();
+        }
+      });
+      checkout.open();
+      return;
+    } catch (error) {
+      upgradeNote.textContent = error.message;
+      return;
+    }
   }
 
   const response = await fetch(`${billingConfig.apiBase}/api/billing/checkout`, {
@@ -679,7 +741,7 @@ async function startCheckout(plan) {
   });
   const payload = await response.json();
   if (!response.ok) {
-    upgradeNote.textContent = payload.error || "Checkout failed. Check Stripe environment variables.";
+    upgradeNote.textContent = payload.error || "Checkout failed. Check payment environment variables.";
     return;
   }
   window.location.href = payload.url;
@@ -766,7 +828,7 @@ function renderIntegrations() {
   }
 
   integrationAiStatus.textContent = modelConfig.ready ? modelConfig.model : "Needs key";
-  integrationBillingStatus.textContent = billingConfig.ready ? "Stripe ready" : "Demo mode";
+  integrationBillingStatus.textContent = billingConfig.razorpayReady ? "Razorpay ready" : billingConfig.ready ? "Stripe ready" : "Demo mode";
 
   const hasKit = Boolean(currentKit);
   const integrations = [
@@ -829,9 +891,11 @@ function renderIntegrations() {
       premium: false
     },
     {
-      name: "Stripe",
-      status: billingConfig.ready ? "Checkout ready" : "Keys needed",
-      detail: "Stripe checkout is scaffolded; webhooks are the next money step.",
+      name: billingConfig.razorpayReady ? "Razorpay" : "Stripe",
+      status: billingConfig.razorpayReady || billingConfig.ready ? "Checkout ready" : "Keys needed",
+      detail: billingConfig.razorpayReady
+        ? "Razorpay Checkout is active for India-friendly payments."
+        : "Stripe checkout is scaffolded; add payment keys before charging users.",
       action: "Pricing",
       type: "pricing",
       premium: false

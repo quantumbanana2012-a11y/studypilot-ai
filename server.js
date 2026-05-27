@@ -27,6 +27,11 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 const stripeProPriceId = process.env.STRIPE_PRO_PRICE_ID || "";
 const stripeSchoolPriceId = process.env.STRIPE_SCHOOL_PRICE_ID || "";
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID || "";
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
+const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+const razorpayProAmount = Number(process.env.RAZORPAY_PRO_AMOUNT || 19900);
+const razorpaySchoolAmount = Number(process.env.RAZORPAY_SCHOOL_AMOUNT || 9900);
 const adsenseClientId = process.env.ADSENSE_CLIENT_ID || "";
 const adsenseSidebarSlot = process.env.ADSENSE_SIDEBAR_SLOT || "";
 const adsenseWorkspaceSlot = process.env.ADSENSE_WORKSPACE_SLOT || "";
@@ -529,6 +534,96 @@ async function handleCheckout(request, response) {
   });
 }
 
+async function createRazorpayOrder(plan, user) {
+  if (!razorpayKeyId || !razorpayKeySecret) {
+    throw new Error("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+  }
+  const amount = plan === "school" ? razorpaySchoolAmount : razorpayProAmount;
+  const auth = Buffer.from(`${razorpayKeyId}:${razorpayKeySecret}`).toString("base64");
+  const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+    method: "POST",
+    headers: {
+      "Authorization": `Basic ${auth}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      amount,
+      currency: "INR",
+      receipt: randomId("receipt").slice(0, 40),
+      notes: {
+        userId: user.id,
+        plan,
+        email: user.email
+      }
+    })
+  });
+  const payload = await razorpayResponse.json();
+  if (!razorpayResponse.ok) {
+    throw new Error(payload.error?.description || "Razorpay order creation failed.");
+  }
+  return payload;
+}
+
+async function handleRazorpayOrder(request, response) {
+  const body = JSON.parse(await readBody(request) || "{}");
+  const plan = body.plan === "school" ? "school" : "pro";
+  const { user } = findSessionUser(request);
+  if (!user) {
+    sendJson(response, 401, { error: "Create an account before starting checkout." });
+    return;
+  }
+  const order = await createRazorpayOrder(plan, user);
+  sendJson(response, 200, {
+    keyId: razorpayKeyId,
+    orderId: order.id,
+    amount: order.amount,
+    currency: order.currency,
+    plan,
+    name: "StudyPilot AI",
+    description: plan === "school" ? "StudyPilot School access" : "StudyPilot Pro access",
+    prefill: {
+      email: user.email
+    }
+  });
+}
+
+function verifyRazorpayPaymentSignature(orderId, paymentId, signature) {
+  if (!razorpayKeySecret || !orderId || !paymentId || !signature) {
+    return false;
+  }
+  const expected = crypto
+    .createHmac("sha256", razorpayKeySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest("hex");
+  if (expected.length !== signature.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+}
+
+async function handleRazorpayVerify(request, response) {
+  const body = JSON.parse(await readBody(request) || "{}");
+  const { database, user } = findSessionUser(request);
+  if (!user) {
+    sendJson(response, 401, { error: "Sign in required." });
+    return;
+  }
+  const verified = verifyRazorpayPaymentSignature(
+    body.razorpay_order_id,
+    body.razorpay_payment_id,
+    body.razorpay_signature
+  );
+  if (!verified) {
+    sendJson(response, 400, { error: "Payment signature could not be verified." });
+    return;
+  }
+  user.plan = body.plan === "school" ? "school" : "pro";
+  user.razorpayPaymentId = body.razorpay_payment_id;
+  user.razorpayOrderId = body.razorpay_order_id;
+  writeDatabase(database);
+  sendJson(response, 200, { ok: true, user: publicUser(user) });
+}
+
 function verifyStripeSignature(rawBody, signatureHeader) {
   if (!stripeWebhookSecret) {
     return true;
@@ -575,6 +670,37 @@ async function handleStripeWebhook(request, response) {
     if (event.type === "customer.subscription.updated" && object.status && !["active", "trialing"].includes(object.status)) {
       user.plan = "free";
     }
+    writeDatabase(database);
+  }
+
+  sendJson(response, 200, { received: true, userUpdated: Boolean(user) });
+}
+
+async function handleRazorpayWebhook(request, response) {
+  const rawBody = await readBody(request);
+  if (razorpayWebhookSecret) {
+    const received = request.headers["x-razorpay-signature"] || "";
+    const expected = crypto
+      .createHmac("sha256", razorpayWebhookSecret)
+      .update(rawBody)
+      .digest("hex");
+    if (expected.length !== received.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))) {
+      sendJson(response, 400, { error: "Invalid Razorpay signature." });
+      return;
+    }
+  }
+
+  const event = JSON.parse(rawBody || "{}");
+  const payment = event.payload?.payment?.entity || {};
+  const notes = payment.notes || {};
+  const database = readDatabase();
+  const user = database.users.find((item) => item.id === notes.userId)
+    || database.users.find((item) => item.email === String(notes.email || "").toLowerCase());
+
+  if (user && ["payment.captured", "order.paid"].includes(event.event)) {
+    user.plan = notes.plan === "school" ? "school" : "pro";
+    user.razorpayPaymentId = payment.id || user.razorpayPaymentId || "";
+    user.razorpayOrderId = payment.order_id || user.razorpayOrderId || "";
     writeDatabase(database);
   }
 
@@ -663,6 +789,7 @@ const server = http.createServer(async (request, response) => {
             ? Boolean(compatibleApiKey)
             : false,
         billingReady: Boolean(stripeSecretKey && stripeProPriceId),
+        razorpayReady: Boolean(razorpayKeyId && razorpayKeySecret),
         adsReady: Boolean(adsEnabled && adsenseClientId),
         accountsReady: true,
         database: path.basename(databasePath),
@@ -753,7 +880,14 @@ const server = http.createServer(async (request, response) => {
         provider: "stripe",
         ready: Boolean(stripeSecretKey && stripeProPriceId),
         proReady: Boolean(stripeSecretKey && stripeProPriceId),
-        schoolReady: Boolean(stripeSecretKey && stripeSchoolPriceId)
+        schoolReady: Boolean(stripeSecretKey && stripeSchoolPriceId),
+        razorpayReady: Boolean(razorpayKeyId && razorpayKeySecret),
+        razorpayKeyId: razorpayKeyId || "",
+        razorpayAmounts: {
+          pro: razorpayProAmount,
+          school: razorpaySchoolAmount,
+          currency: "INR"
+        }
       });
       return;
     }
@@ -774,8 +908,23 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.url === "/api/billing/razorpay/order" && request.method === "POST") {
+      await handleRazorpayOrder(request, response);
+      return;
+    }
+
+    if (request.url === "/api/billing/razorpay/verify" && request.method === "POST") {
+      await handleRazorpayVerify(request, response);
+      return;
+    }
+
     if (request.url === "/api/billing/webhook" && request.method === "POST") {
       await handleStripeWebhook(request, response);
+      return;
+    }
+
+    if (request.url === "/api/billing/razorpay/webhook" && request.method === "POST") {
+      await handleRazorpayWebhook(request, response);
       return;
     }
 

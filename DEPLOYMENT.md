@@ -6,6 +6,7 @@
 - Hosted cloud model endpoint for production
 - Stripe Checkout endpoint for Pro and School subscriptions
 - Stripe webhook endpoint at `/api/billing/webhook`
+- Razorpay Checkout endpoint for India-friendly payments
 - Email/password accounts for private beta
 - Server-side saved latest kit per account
 - AdSense-ready ad slots for Free users
@@ -34,6 +35,9 @@ STRIPE_SECRET_KEY=sk_live_...
 STRIPE_PRO_PRICE_ID=price_...
 STRIPE_SCHOOL_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+RAZORPAY_KEY_ID=rzp_live_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
 PUBLIC_BASE_URL=https://your-domain.com
 DATABASE_PATH=./data/studypilot-db.json
 ADS_ENABLED=true
@@ -53,12 +57,20 @@ Webhook URL:
 https://your-domain.com/api/billing/webhook
 ```
 
+Razorpay webhook URL:
+
+```text
+https://your-domain.com/api/billing/razorpay/webhook
+```
+
 Listen for:
 
 - `checkout.session.completed`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 - `invoice.payment_failed`
+
+Razorpay can be used instead of Stripe for India payments. Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`; the frontend will prefer Razorpay checkout when it is configured.
 
 ## Must Add Before Real Launch
 

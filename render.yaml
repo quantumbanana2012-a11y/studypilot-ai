@@ -35,6 +35,16 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: RAZORPAY_PRO_AMOUNT
+        value: 19900
+      - key: RAZORPAY_SCHOOL_AMOUNT
+        value: 9900
       - key: DATABASE_PATH
         value: ./data/studypilot-db.json
       - key: ADS_ENABLED
