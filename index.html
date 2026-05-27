@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StudyPilot AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Study setup">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">SP</div>
+          <div>
+            <h1>StudyPilot AI</h1>
+            <p>Notes to recall practice, quizzes, and review plans.</p>
+          </div>
+        </div>
+        <section class="plan-card" aria-label="Current plan">
+          <div>
+            <span>Current plan</span>
+            <strong id="planBadge">Free</strong>
+            <small id="accountBadge">Guest mode</small>
+          </div>
+          <button id="upgradeBtn" class="ghost-button" type="button">Upgrade</button>
+        </section>
+
+        <aside id="sidebarAd" class="ad-card" aria-label="Advertisement">
+          <span>Sponsored</span>
+          <strong>Ad slot ready</strong>
+          <p>Connect AdSense to show ads for Free users.</p>
+        </aside>
+
+        <section class="panel account-panel" aria-labelledby="account-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="account-heading">Account</h2>
+              <p id="accountStatus">Sign in to sync kits and unlock paid plans.</p>
+            </div>
+            <button id="logoutBtn" class="ghost-button" type="button" hidden>Log out</button>
+          </div>
+          <div id="authFields" class="auth-fields">
+            <input id="authEmail" type="email" autocomplete="email" placeholder="Email" />
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password" />
+            <div class="auth-actions">
+              <button id="loginBtn" class="ghost-button" type="button">Sign in</button>
+              <button id="signupBtn" class="primary-button" type="button">Create</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel input-panel" aria-labelledby="notes-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="notes-heading">Source Material</h2>
+              <p>Paste a lesson, reading, transcript, or messy class notes.</p>
+            </div>
+            <button id="sampleBtn" class="ghost-button" type="button">Sample</button>
+          </div>
+
+          <div id="fileDropZone" class="file-drop-zone" role="button" tabindex="0" aria-label="Add study files">
+            <input id="fileInput" type="file" multiple accept=".txt,.md,.markdown,.csv,.json,.html,.htm,.pdf,text/*,application/json,application/pdf" />
+            <div>
+              <strong>Add files</strong>
+              <span>Drop notes here or choose PDF, text, Markdown, CSV, JSON, or HTML files.</span>
+            </div>
+            <button id="chooseFileBtn" class="ghost-button" type="button">Choose</button>
+          </div>
+          <div id="fileList" class="file-list" aria-live="polite"></div>
+
+          <textarea id="notesInput" spellcheck="true" placeholder="Paste your study material here..."></textarea>
+
+          <div class="controls">
+            <label class="field">
+              Goal
+              <select id="focusSelect">
+                <option value="exam">Exam prep</option>
+                <option value="concepts">Concept mastery</option>
+                <option value="memorize">Memorization</option>
+                <option value="teach">Teach-back</option>
+              </select>
+            </label>
+            <label class="field">
+              Difficulty
+              <select id="difficultySelect">
+                <option value="balanced">Balanced</option>
+                <option value="gentle">Gentle</option>
+                <option value="challenge">Challenge</option>
+              </select>
+            </label>
+            <label class="field">
+              Session
+              <select id="sessionSelect">
+                <option value="25">25 min</option>
+                <option value="45">45 min</option>
+                <option value="60">60 min</option>
+              </select>
+            </label>
+            <label class="field">
+              Card count
+              <select id="cardCountSelect">
+                <option value="8">8 cards</option>
+                <option value="12">12 cards - Pro</option>
+                <option value="16">16 cards - Pro</option>
+              </select>
+            </label>
+            <label class="field">
+              Quiz mode
+              <select id="quizModeSelect">
+                <option value="mixed">Mixed</option>
+                <option value="typed">Typed</option>
+                <option value="choice">Multiple choice</option>
+                <option value="truefalse">True / false</option>
+              </select>
+            </label>
+            <label class="field">
+              Exam date
+              <input id="examDateInput" type="date" />
+            </label>
+          </div>
+
+          <button id="generateBtn" class="primary-button" type="button">Generate Study Kit</button>
+        </section>
+
+        <footer class="site-footer">
+          <a href="./privacy.html">Privacy</a>
+          <a href="./terms.html">Terms</a>
+          <a href="./contact.html">Contact</a>
+        </footer>
+      </aside>
+
+      <section class="workspace" aria-label="Generated study workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">AI study workspace</p>
+            <h2 id="kitTitle">Ready when your notes are</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="exportBtn" class="utility-button" type="button" title="Export kit">Export</button>
+            <button id="obsidianBtn" class="utility-button premium-action" type="button" title="Export Obsidian Markdown">Obsidian Pro</button>
+            <button id="saveBtn" class="utility-button" type="button" title="Save kit">Save</button>
+            <button id="clearBtn" class="utility-button" type="button" title="Clear kit">Clear</button>
+          </div>
+        </header>
+
+        <section class="coach-strip" aria-label="AI coaching summary">
+          <article>
+            <span>Readiness</span>
+            <strong id="readinessScore">0%</strong>
+          </article>
+          <article>
+            <span>Estimated read</span>
+            <strong id="readingTime">0 min</strong>
+          </article>
+          <article>
+            <span>Key terms</span>
+            <strong id="keyTermCount">0</strong>
+          </article>
+          <article>
+            <span>Words</span>
+            <strong id="wordCount">0</strong>
+          </article>
+          <article>
+            <span>Plan</span>
+            <strong id="planStrip">Free</strong>
+          </article>
+        </section>
+
+        <aside id="workspaceAd" class="ad-banner" aria-label="Advertisement">
+          <span>Sponsored</span>
+          <p>AdSense banner slot ready for Free users.</p>
+        </aside>
+
+        <nav class="tabs" aria-label="Study kit sections">
+          <button class="tab is-active" data-tab="coach" type="button">Coach</button>
+          <button class="tab" data-tab="summary" type="button">Summary</button>
+          <button class="tab" data-tab="flashcards" type="button">Cards</button>
+          <button class="tab" data-tab="quiz" type="button">Quiz</button>
+          <button class="tab" data-tab="games" type="button">Games</button>
+          <button class="tab" data-tab="assistant" type="button">Assistant</button>
+          <button class="tab" data-tab="references" type="button">Visuals</button>
+          <button class="tab" data-tab="research" type="button">Web</button>
+          <button class="tab" data-tab="calculator" type="button">Calc</button>
+          <button class="tab" data-tab="review" type="button">Review</button>
+          <button class="tab" data-tab="plan" type="button">Plan</button>
+          <button class="tab" data-tab="collaboration" type="button">Collab</button>
+          <button class="tab" data-tab="integrations" type="button">Integrations</button>
+        </nav>
+
+        <section id="emptyState" class="empty-state">
+          <div class="empty-visual" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h2>Build a study kit in one click.</h2>
+          <p>Add notes to generate a coach brief, active-recall cards, a quick quiz, and spaced review plan.</p>
+        </section>
+
+        <section id="coach" class="tab-panel is-active" aria-labelledby="coach-tab">
+          <div class="coach-grid">
+            <section class="panel">
+              <h3>Coach Brief</h3>
+              <p id="coachBrief" class="coach-brief"></p>
+            </section>
+            <section class="panel">
+              <h3>Learning Targets</h3>
+              <ul id="targetList" class="clean-list"></ul>
+            </section>
+            <section class="panel wide-panel">
+              <h3>Weak Spot Watchlist</h3>
+              <div id="weakList" class="weak-list"></div>
+            </section>
+            <section class="panel wide-panel">
+              <h3>Source Check</h3>
+              <ul id="sourceCheckList" class="clean-list"></ul>
+            </section>
+            <section class="panel wide-panel assistant-teaser">
+              <div>
+                <h3>Study Coach</h3>
+                <p>Ask for hints, explanations, weak-spot practice, or a quick teaching script.</p>
+              </div>
+              <button class="primary-button" data-tab-jump="assistant" type="button">Ask Coach</button>
+            </section>
+          </div>
+        </section>
+
+        <section id="summary" class="tab-panel" aria-labelledby="summary-tab">
+          <div class="content-grid">
+            <section class="panel">
+              <h3>Core Summary</h3>
+              <ul id="summaryList" class="summary-list"></ul>
+            </section>
+            <section class="panel">
+              <h3>Key Terms</h3>
+              <div id="termList" class="term-list"></div>
+            </section>
+            <section class="panel wide-panel">
+              <h3>Concept Map</h3>
+              <div id="conceptMap" class="concept-map"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="flashcards" class="tab-panel" aria-labelledby="flashcards-tab">
+          <div class="card-toolbar">
+            <p>Tap a card to flip it. Mark recall quality to update readiness.</p>
+            <button id="resetMasteryBtn" class="ghost-button" type="button">Reset mastery</button>
+          </div>
+          <div id="flashcardGrid" class="flashcard-grid"></div>
+        </section>
+
+        <section id="quiz" class="tab-panel" aria-labelledby="quiz-tab">
+          <div class="quiz-header">
+            <h3>Quick Check</h3>
+            <strong id="quizScore">0 / 0</strong>
+          </div>
+          <div id="quizList" class="quiz-list"></div>
+        </section>
+
+        <section id="games" class="tab-panel" aria-labelledby="games-tab">
+          <div class="game-shell">
+            <section class="panel game-hero">
+              <div>
+                <p class="eyebrow">Learning path</p>
+                <h3>Practice without feeling stuck</h3>
+              </div>
+              <div class="game-stats">
+                <article>
+                  <span>XP</span>
+                  <strong id="gameXp">0</strong>
+                </article>
+                <article>
+                  <span>Streak</span>
+                  <strong id="gameStreak">0</strong>
+                </article>
+                <article>
+                  <span>Mode</span>
+                  <strong id="gameModeLabel">Match</strong>
+                </article>
+              </div>
+              <div id="lessonPath" class="lesson-path"></div>
+            </section>
+
+            <section class="panel game-panel">
+              <div class="game-toolbar">
+                <button class="game-mode is-active" data-game-mode="match" type="button">Match</button>
+                <button class="game-mode" data-game-mode="sprint" type="button">Sprint</button>
+                <button class="game-mode" data-game-mode="type" type="button">Type</button>
+              </div>
+              <div id="gameBoard" class="game-board"></div>
+              <p id="gameFeedback" class="game-feedback"></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="assistant" class="tab-panel" aria-labelledby="assistant-tab">
+          <div class="assistant-shell">
+            <section class="panel assistant-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">AI assistant</p>
+                  <h3>Study Coach</h3>
+                </div>
+                <span id="assistantStatus">Source-grounded</span>
+              </div>
+              <div id="assistantMessages" class="assistant-messages" aria-live="polite"></div>
+              <form id="assistantForm" class="assistant-form">
+                <input id="assistantInput" type="text" autocomplete="off" placeholder="Ask about your notes..." />
+                <button class="primary-button" type="submit">Send</button>
+              </form>
+            </section>
+            <section class="panel assistant-tools">
+              <h3>Quick Prompts</h3>
+              <button type="button" data-assistant-prompt="Explain my weakest term simply.">Explain weak spot</button>
+              <button type="button" data-assistant-prompt="Give me a hint, not the answer.">Give a hint</button>
+              <button type="button" data-assistant-prompt="Quiz me on the most important idea.">Quiz me</button>
+              <button type="button" data-assistant-prompt="What should I study next?">Next step</button>
+              <button type="button" data-assistant-prompt="Teach this like I am new to it.">Teach it</button>
+            </section>
+          </div>
+        </section>
+
+        <section id="references" class="tab-panel" aria-labelledby="references-tab">
+          <div class="reference-shell">
+            <section class="panel reference-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Reference images</p>
+                  <h3>Visual Study Cards</h3>
+                </div>
+                <button id="generateVisualsBtn" class="primary-button" type="button">Generate Visuals</button>
+              </div>
+              <div id="referenceGallery" class="reference-gallery"></div>
+            </section>
+            <section class="panel reference-tools">
+              <h3>Visual Style</h3>
+              <button type="button" data-visual-style="diagram">Diagram</button>
+              <button type="button" data-visual-style="memory">Memory card</button>
+              <button type="button" data-visual-style="process">Process flow</button>
+              <p id="visualHelp">Creates topic-based SVG reference images from your generated terms and notes.</p>
+            </section>
+          </div>
+        </section>
+
+        <section id="research" class="tab-panel" aria-labelledby="research-tab">
+          <div class="research-shell">
+            <section class="panel research-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Web research</p>
+                  <h3>Related Sources</h3>
+                </div>
+                <button id="researchBtn" class="primary-button" type="button">Check Web</button>
+              </div>
+              <div id="researchResults" class="research-results"></div>
+            </section>
+            <section class="panel research-tools">
+              <h3>Search Focus</h3>
+              <input id="researchInput" type="text" autocomplete="off" placeholder="Optional topic or keyword" />
+              <p>Uses the server to fetch related public reference material. Add API-based search later for broader web coverage.</p>
+            </section>
+          </div>
+        </section>
+
+        <section id="calculator" class="tab-panel" aria-labelledby="calculator-tab">
+          <div class="calculator-shell">
+            <section class="panel calculator-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Study tool</p>
+                  <h3>Calculator</h3>
+                </div>
+                <span id="calcModeLabel">Scientific</span>
+              </div>
+              <div class="calculator-display">
+                <input id="calcInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Type 2*(3+4) or use buttons" />
+                <strong id="calcResult">0</strong>
+              </div>
+              <div class="calculator-grid" aria-label="Calculator buttons">
+                <button type="button" data-calc-action="clear">AC</button>
+                <button type="button" data-calc-action="back">DEL</button>
+                <button type="button" data-calc-value="(">(</button>
+                <button type="button" data-calc-value=")">)</button>
+                <button type="button" data-calc-value="sqrt(">sqrt</button>
+                <button type="button" data-calc-value="sin(">sin</button>
+                <button type="button" data-calc-value="cos(">cos</button>
+                <button type="button" data-calc-value="log(">log</button>
+                <button type="button" data-calc-value="%">%</button>
+                <button type="button" data-calc-value="/">/</button>
+                <button type="button" data-calc-value="7">7</button>
+                <button type="button" data-calc-value="8">8</button>
+                <button type="button" data-calc-value="9">9</button>
+                <button type="button" data-calc-value="*">x</button>
+                <button type="button" data-calc-value="4">4</button>
+                <button type="button" data-calc-value="5">5</button>
+                <button type="button" data-calc-value="6">6</button>
+                <button type="button" data-calc-value="-">-</button>
+                <button type="button" data-calc-value="1">1</button>
+                <button type="button" data-calc-value="2">2</button>
+                <button type="button" data-calc-value="3">3</button>
+                <button type="button" data-calc-value="+">+</button>
+                <button type="button" data-calc-value="0">0</button>
+                <button type="button" data-calc-value=".">.</button>
+                <button type="button" data-calc-value="pi">pi</button>
+                <button type="button" data-calc-value="^">^</button>
+                <button class="calc-equals" type="button" data-calc-action="equals">=</button>
+              </div>
+              <div id="calcHistory" class="calc-history"></div>
+            </section>
+            <section class="panel formula-panel">
+              <h3>Quick Formulas</h3>
+              <button type="button" data-formula="percent">Percent change</button>
+              <button type="button" data-formula="average">Average</button>
+              <button type="button" data-formula="distance">Distance = rate x time</button>
+              <button type="button" data-formula="compound">Compound interest</button>
+              <p id="formulaHelp">Pick a formula to insert a template.</p>
+            </section>
+          </div>
+        </section>
+
+        <section id="review" class="tab-panel" aria-labelledby="review-tab">
+          <div class="review-board">
+            <section class="panel">
+              <h3>Due Today</h3>
+              <div id="dueReviewList" class="review-list"></div>
+            </section>
+            <section class="panel">
+              <h3>Progress</h3>
+              <div class="progress-stack">
+                <article>
+                  <span>Known cards</span>
+                  <strong id="knownCount">0</strong>
+                </article>
+                <article>
+                  <span>Needs work</span>
+                  <strong id="needsWorkCount">0</strong>
+                </article>
+                <article>
+                  <span>Next review</span>
+                  <strong id="nextReviewDate">None</strong>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="plan" class="tab-panel" aria-labelledby="plan-tab">
+          <div class="plan-board">
+            <section class="panel">
+              <h3>Focus Timer</h3>
+              <div class="timer-face">
+                <strong id="timerDisplay">25:00</strong>
+                <span id="timerLabel">Ready</span>
+              </div>
+              <div class="timer-actions">
+                <button id="timerStartBtn" class="primary-button" type="button">Start</button>
+                <button id="timerResetBtn" class="ghost-button" type="button">Reset</button>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Study Flow</h3>
+              <ol id="planList" class="plan-list"></ol>
+            </section>
+            <section class="panel wide-panel">
+              <h3>Next Review</h3>
+              <div id="reviewList" class="review-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="integrations" class="tab-panel" aria-labelledby="integrations-tab">
+          <div class="integrations-shell">
+            <section class="panel integrations-hero">
+              <div>
+                <p class="eyebrow">Connected study stack</p>
+                <h3>Integrations Hub</h3>
+                <p>Connect the tools students already use, then turn notes into study actions.</p>
+              </div>
+              <div class="integration-status-grid">
+                <article>
+                  <span>AI</span>
+                  <strong id="integrationAiStatus">Checking</strong>
+                </article>
+                <article>
+                  <span>Billing</span>
+                  <strong id="integrationBillingStatus">Demo</strong>
+                </article>
+                <article>
+                  <span>Exports</span>
+                  <strong>Ready</strong>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel integrations-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Available now</p>
+                  <h3>Connectors</h3>
+                </div>
+                <button id="copyIntegrationPayloadBtn" class="ghost-button" type="button">Copy Payload</button>
+              </div>
+              <div id="integrationGrid" class="integration-grid"></div>
+            </section>
+
+            <section class="panel integrations-roadmap">
+              <h3>Revenue Integrations Next</h3>
+              <ol class="plan-list">
+                <li>Auth: Google login and saved kits per student.</li>
+                <li>Stripe webhooks: enforce Pro and School plans server-side.</li>
+                <li>Google Drive: import Docs/PDFs once accounts exist.</li>
+                <li>Calendar: push spaced-review sessions to the student's calendar.</li>
+                <li>LMS: Canvas/Classroom import for assignments and class materials.</li>
+              </ol>
+            </section>
+          </div>
+        </section>
+
+        <section id="collaboration" class="tab-panel" aria-labelledby="collaboration-tab">
+          <div class="collab-shell">
+            <section class="panel collab-hero">
+              <div>
+                <p class="eyebrow">Shared study rooms</p>
+                <h3>Collaborative Learning</h3>
+                <p>Turn one study kit into a room for classmates, tutors, or a teacher-led group.</p>
+              </div>
+              <div class="collab-status-grid">
+                <article>
+                  <span>Room</span>
+                  <strong id="collabRoomCode">Not created</strong>
+                </article>
+                <article>
+                  <span>Members</span>
+                  <strong id="collabMemberCount">0</strong>
+                </article>
+                <article>
+                  <span>Mode</span>
+                  <strong id="collabModeLabel">Study Group</strong>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel collab-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Room tools</p>
+                  <h3>Invite + Assign</h3>
+                </div>
+                <button id="createRoomBtn" class="primary-button" type="button">Create Room</button>
+              </div>
+              <div class="collab-controls">
+                <label class="field">
+                  Room mode
+                  <select id="collabModeSelect">
+                    <option value="study">Study group</option>
+                    <option value="teacher">Teacher review</option>
+                    <option value="tutor">Tutor session</option>
+                  </select>
+                </label>
+                <label class="field">
+                  Invitees
+                  <input id="collabInviteInput" type="text" placeholder="maya, sam, teacher" autocomplete="off" />
+                </label>
+              </div>
+              <div class="collab-actions">
+                <button id="copyInviteBtn" class="ghost-button" type="button">Copy Invite</button>
+                <button id="peerChallengeBtn" class="ghost-button" type="button">Peer Challenge</button>
+                <button id="exportGroupReportBtn" class="ghost-button" type="button">Export Report</button>
+              </div>
+              <div id="collabRoomPanel" class="collab-room-panel"></div>
+            </section>
+
+            <section class="panel collab-panel">
+              <h3>Team Progress</h3>
+              <div id="collabProgressList" class="collab-progress-list"></div>
+            </section>
+
+            <section class="panel collab-roadmap wide-panel">
+              <h3>Collab Features To Build With Accounts</h3>
+              <div class="collab-feature-grid">
+                <article>
+                  <strong>Shared Kits</strong>
+                  <p>Students join a room and practice from the same source material.</p>
+                </article>
+                <article>
+                  <strong>Teacher Dashboard</strong>
+                  <p>See class weak topics, missed questions, and readiness by group.</p>
+                </article>
+                <article>
+                  <strong>Peer Challenges</strong>
+                  <p>Send classmates timed quizzes or match rounds from the same kit.</p>
+                </article>
+                <article>
+                  <strong>Comments</strong>
+                  <p>Ask questions on a card and let a tutor or teacher respond.</p>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="upgradeModal" class="modal-backdrop" hidden>
+      <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">
+        <header>
+          <div>
+            <p class="eyebrow">StudyPilot pricing</p>
+            <h2 id="upgradeTitle">Unlock deeper study sessions</h2>
+          </div>
+          <button id="closeUpgradeBtn" class="icon-button" type="button" aria-label="Close upgrade">X</button>
+        </header>
+        <div class="pricing-grid">
+          <article class="price-card">
+            <span>Free</span>
+            <strong>$0</strong>
+            <p>For quick study kits and light review.</p>
+            <ul>
+              <li>8 cards per kit</li>
+              <li>Basic quiz and match game</li>
+              <li>Plain text export</li>
+            </ul>
+            <button class="ghost-button" data-plan-choice="free" type="button">Use Free</button>
+          </article>
+          <article class="price-card is-featured">
+            <span>Pro</span>
+            <strong>$7/mo</strong>
+            <p>For students who study from notes every week.</p>
+            <ul>
+              <li>16 cards per kit</li>
+              <li>Sprint and Type games</li>
+              <li>Obsidian export</li>
+              <li>Challenge mode</li>
+            </ul>
+            <button class="primary-button" data-plan-choice="pro" type="button">Start Pro Trial</button>
+          </article>
+          <article class="price-card">
+            <span>School</span>
+            <strong>$3/student</strong>
+            <p>For teachers, cohorts, and study groups.</p>
+            <ul>
+              <li>Shared class kits</li>
+              <li>Teacher review dashboard</li>
+              <li>Roster-ready progress</li>
+            </ul>
+            <button class="ghost-button" data-plan-choice="school" type="button">Demo School</button>
+          </article>
+        </div>
+        <p id="upgradeNote" class="upgrade-note">Demo only: plan changes are saved locally in this browser.</p>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

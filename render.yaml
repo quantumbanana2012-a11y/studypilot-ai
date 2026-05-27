@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: studypilot-ai
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: studypilot-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MODEL_PROVIDER
+        value: compatible
+      - key: COMPATIBLE_API_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: COMPATIBLE_MODEL
+        value: openrouter/free
+      - key: COMPATIBLE_FALLBACK_MODELS
+        value: google/gemma-3-27b-it:free,meta-llama/llama-3.3-70b-instruct:free,mistralai/mistral-7b-instruct:free
+      - key: MODEL_TIMEOUT_MS
+        value: 35000
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COMPATIBLE_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      - key: STRIPE_SCHOOL_PRICE_ID
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/studypilot-db.json
+      - key: ADS_ENABLED
+        value: false
+      - key: ADSENSE_CLIENT_ID
+        sync: false
+      - key: ADSENSE_SIDEBAR_SLOT
+        sync: false
+      - key: ADSENSE_WORKSPACE_SLOT
+        sync: false
