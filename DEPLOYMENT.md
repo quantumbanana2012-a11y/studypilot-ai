@@ -9,9 +9,9 @@
 - Razorpay Checkout endpoint for India-friendly payments
 - Email/password accounts for private beta
 - Server-side saved latest kit per account
-- AdSense-ready ad slots for Free users
-- Free / Pro / School pricing UI
-- Local demo unlocks only when Stripe is not configured
+- AdSense-ready ad slots for Starter users
+- Starter / Pro / School pricing UI
+- Paid plans unlock only after a payment provider is configured and checkout succeeds
 
 ## Monetization Setup
 
@@ -83,7 +83,7 @@ Razorpay can be used instead of Stripe for India payments. Add `RAZORPAY_KEY_ID`
 3. Hosted model provider
    For a free cloud setup, use `MODEL_PROVIDER=compatible` with OpenRouter's free model router. You can also swap to Groq or Hugging Face with the same OpenAI-compatible backend shape, or use `MODEL_PROVIDER=openai` with `OPENAI_MODEL=gpt-5-mini` when you are ready to pay for steadier production capacity.
 
-Free-tier compatible example:
+No-cost compatible model example:
 
 ```bash
 MODEL_PROVIDER=compatible
@@ -102,8 +102,8 @@ COMPATIBLE_MODEL=openrouter/free
 
 The app is wired for AdSense Auto/manual placements:
 
-- Sidebar ad for Free users
-- Workspace banner ad for Free users
+- Sidebar ad for Starter users
+- Workspace banner ad for Starter users
 - No ads for Pro and School users
 - `/api/ads/config` exposes the public AdSense client and slot IDs
 - `/ads.txt` is generated from `ADSENSE_CLIENT_ID`
@@ -115,7 +115,7 @@ Google says AdSense requires access to your page HTML and you add the ad code to
 
 ## Suggested Paywall
 
-Free:
+Starter:
 - 8 cards per kit
 - Match game
 - basic quiz

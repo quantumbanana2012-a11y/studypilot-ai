@@ -667,7 +667,7 @@ async function handleStripeWebhook(request, response) {
     if (event.type === "customer.subscription.deleted" || event.type === "invoice.payment_failed") {
       user.plan = "free";
     }
-    if (event.type === "customer.subscription.updated" && object.status && !["active", "trialing"].includes(object.status)) {
+    if (event.type === "customer.subscription.updated" && object.status && object.status !== "active") {
       user.plan = "free";
     }
     writeDatabase(database);

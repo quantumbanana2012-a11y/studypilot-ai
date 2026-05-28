@@ -13,13 +13,13 @@
           <div class="brand-mark" aria-hidden="true">SD</div>
           <div>
             <h1>SynapseDeck AI</h1>
-            <p>Notes to recall practice, quizzes, and review plans.</p>
+            <p>Paste notes. Get flashcards, quizzes, games, and an AI tutor.</p>
           </div>
         </div>
         <section class="plan-card" aria-label="Current plan">
           <div>
             <span>Current plan</span>
-            <strong id="planBadge">Free</strong>
+            <strong id="planBadge">Starter</strong>
             <small id="accountBadge">Guest mode</small>
           </div>
           <div class="plan-actions">
@@ -31,14 +31,14 @@
         <aside id="sidebarAd" class="ad-card" aria-label="Advertisement">
           <span>Sponsored</span>
           <strong>Ad slot ready</strong>
-          <p>Connect AdSense to show ads for Free users.</p>
+          <p>Connect AdSense to show ads for Starter users.</p>
         </aside>
 
         <section class="panel account-panel" aria-labelledby="account-heading">
           <div class="panel-heading">
             <div>
               <h2 id="account-heading">Account</h2>
-              <p id="accountStatus">Sign in to sync kits and unlock paid plans.</p>
+              <p id="accountStatus">Create an account to save kits and unlock paid plans.</p>
             </div>
             <button id="logoutBtn" class="ghost-button" type="button" hidden>Log out</button>
           </div>
@@ -125,6 +125,17 @@
           <button id="generateBtn" class="primary-button" type="button">Generate Study Kit</button>
         </section>
 
+        <section class="panel referral-panel" aria-labelledby="referral-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="referral-heading">Invite</h2>
+              <p>Share SynapseDeck with classmates and study groups.</p>
+            </div>
+          </div>
+          <button id="copyReferralBtn" class="ghost-button" type="button">Copy invite link</button>
+          <small id="referralStatus">Referral rewards can plug in after payments are live.</small>
+        </section>
+
         <footer class="site-footer">
           <a href="./privacy.html">Privacy</a>
           <a href="./terms.html">Terms</a>
@@ -165,13 +176,13 @@
           </article>
           <article>
             <span>Plan</span>
-            <strong id="planStrip">Free</strong>
+            <strong id="planStrip">Starter</strong>
           </article>
         </section>
 
         <aside id="workspaceAd" class="ad-banner" aria-label="Advertisement">
           <span>Sponsored</span>
-          <p>AdSense banner slot ready for Free users.</p>
+          <p>AdSense banner slot ready for Starter users.</p>
         </aside>
 
         <nav class="tabs" aria-label="Study kit sections">
@@ -646,7 +657,7 @@
             <button id="gateSignupBtn" class="primary-button" type="button">Create account</button>
           </div>
         </div>
-        <button id="authGateGuestBtn" class="text-button" type="button">Continue as guest</button>
+        <button id="authGateGuestBtn" class="text-button" type="button">Preview without saving</button>
       </section>
     </div>
 
@@ -661,15 +672,15 @@
         </header>
         <div class="pricing-grid">
           <article class="price-card">
-            <span>Free</span>
+            <span>Starter</span>
             <strong>$0</strong>
-            <p>For quick study kits and light review.</p>
+            <p>Preview the product with ads and limited exports.</p>
             <ul>
               <li>8 cards per kit</li>
               <li>Basic quiz and match game</li>
               <li>Plain text export</li>
             </ul>
-            <button class="ghost-button" data-plan-choice="free" type="button">Use Free</button>
+            <button class="ghost-button" data-plan-choice="free" type="button">Stay on Starter</button>
           </article>
           <article class="price-card is-featured">
             <span>Pro</span>
@@ -681,7 +692,7 @@
               <li>Obsidian export</li>
               <li>Challenge mode</li>
             </ul>
-            <button class="primary-button" data-plan-choice="pro" type="button">Start Pro Trial</button>
+            <button class="primary-button" data-plan-choice="pro" type="button">Upgrade to Pro</button>
           </article>
           <article class="price-card">
             <span>School</span>
@@ -692,10 +703,10 @@
               <li>Teacher review dashboard</li>
               <li>Roster-ready progress</li>
             </ul>
-            <button class="ghost-button" data-plan-choice="school" type="button">Demo School</button>
+            <button class="ghost-button" data-plan-choice="school" type="button">Contact for School</button>
           </article>
         </div>
-        <p id="upgradeNote" class="upgrade-note">Demo only: plan changes are saved locally in this browser.</p>
+        <p id="upgradeNote" class="upgrade-note">Payments must complete before paid features unlock.</p>
       </section>
     </div>
 

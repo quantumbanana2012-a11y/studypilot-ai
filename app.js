@@ -20,6 +20,8 @@ const upgradeModal = document.querySelector("#upgradeModal");
 const closeUpgradeBtn = document.querySelector("#closeUpgradeBtn");
 const planBadge = document.querySelector("#planBadge");
 const planStrip = document.querySelector("#planStrip");
+const copyReferralBtn = document.querySelector("#copyReferralBtn");
+const referralStatus = document.querySelector("#referralStatus");
 const accountBadge = document.querySelector("#accountBadge");
 const sidebarAd = document.querySelector("#sidebarAd");
 const workspaceAd = document.querySelector("#workspaceAd");
@@ -460,12 +462,32 @@ function hasProAccess() {
 }
 
 function planName() {
-  return currentPlan === "school" ? "School" : currentPlan === "pro" ? "Pro Trial" : "Free";
+  return currentPlan === "school" ? "School" : currentPlan === "pro" ? "Pro" : "Starter";
 }
 
 function showUpgrade(reason = "Upgrade to unlock this study feature.") {
   upgradeNote.textContent = reason;
   upgradeModal.hidden = false;
+}
+
+function requireAccount(featureName) {
+  if (currentUser) {
+    return true;
+  }
+  showAuthGate();
+  accountStatus.textContent = `${featureName} needs a SynapseDeck account. Create one to continue.`;
+  if (authGateStatus && !authGate.hidden) {
+    authGateStatus.textContent = accountStatus.textContent;
+  }
+  return false;
+}
+
+function requirePro(featureName) {
+  if (hasProAccess()) {
+    return true;
+  }
+  showUpgrade(`${featureName} is included in Pro.`);
+  return false;
 }
 
 function hideUpgrade() {
@@ -501,7 +523,7 @@ function renderAccount() {
   accountBadge.textContent = signedIn ? currentUser.email : "Guest mode";
   accountStatus.textContent = signedIn
     ? `${currentUser.email} - ${planName()} account`
-    : "Sign in to sync kits and unlock paid plans.";
+    : "Create an account to save kits and unlock paid plans.";
   authFields.hidden = signedIn;
   logoutBtn.hidden = !signedIn;
 }
@@ -709,7 +731,7 @@ function renderAds() {
     window.setTimeout(pushAds, 500);
   } else {
     sidebarAd.innerHTML = `<span>Sponsored</span><strong>Ad slot ready</strong><p>Set ADSENSE_CLIENT_ID after Google approves the site.</p>`;
-    workspaceAd.innerHTML = `<span>Sponsored</span><p>Free users will see a banner here after AdSense approval.</p>`;
+    workspaceAd.innerHTML = `<span>Sponsored</span><p>Starter users will see a banner here after AdSense approval.</p>`;
   }
 }
 
@@ -735,14 +757,12 @@ async function loadAdsConfig() {
 
 async function startCheckout(plan) {
   if (!billingConfig.ready && !billingConfig.razorpayReady) {
-    setPlan(plan);
-    upgradeNote.textContent = "Demo mode: payments are not configured yet, so this plan was unlocked locally.";
+    upgradeNote.textContent = "Payments are not configured yet. Add Razorpay or Stripe keys before selling paid plans.";
     return;
   }
 
-  if (!currentUser) {
-    upgradeNote.textContent = "Create an account first so the payment can attach to your SynapseDeck plan.";
-    authEmail.focus();
+  if (!requireAccount("Upgrading")) {
+    upgradeNote.textContent = "Create an account first so payment can attach to your SynapseDeck plan.";
     return;
   }
 
@@ -888,7 +908,7 @@ function renderIntegrations() {
   }
 
   integrationAiStatus.textContent = modelConfig.ready ? modelConfig.model : "Needs key";
-  integrationBillingStatus.textContent = billingConfig.razorpayReady ? "Razorpay ready" : billingConfig.ready ? "Stripe ready" : "Demo mode";
+  integrationBillingStatus.textContent = billingConfig.razorpayReady ? "Razorpay ready" : billingConfig.ready ? "Stripe ready" : "Payments pending";
 
   const hasKit = Boolean(currentKit);
   const integrations = [
@@ -1063,6 +1083,9 @@ async function copyCollabInvite() {
 }
 
 function exportGroupReport() {
+  if (!requireAccount("Group reports")) {
+    return;
+  }
   const payload = {
     room: collabRoom || null,
     kit: currentKit ? `${titleCase(currentKit.focus)} kit` : null,
@@ -1074,6 +1097,9 @@ function exportGroupReport() {
 }
 
 function createPeerChallenge() {
+  if (!requireAccount("Peer challenges")) {
+    return;
+  }
   if (!currentKit) {
     showUpgrade("Generate a kit before creating a peer challenge.");
     return;
@@ -2196,26 +2222,29 @@ async function saveKit() {
   if (!currentKit) {
     return;
   }
+  if (!requireAccount("Cloud saving")) {
+    saveBtn.textContent = "Sign in";
+    window.setTimeout(() => {
+      saveBtn.textContent = "Save";
+    }, 1100);
+    return;
+  }
 
   const payload = savedKitPayload();
   localStorage.setItem("synapseDeckKit", JSON.stringify(payload));
 
-  if (currentUser) {
-    try {
-      const response = await fetch(`${apiBase()}/api/kits/latest`, {
-        method: "POST",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) {
-        throw new Error("Cloud save failed.");
-      }
-      saveBtn.textContent = "Synced";
-    } catch {
-      saveBtn.textContent = "Saved local";
+  try {
+    const response = await fetch(`${apiBase()}/api/kits/latest`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      throw new Error("Cloud save failed.");
     }
-  } else {
-    saveBtn.textContent = "Saved";
+    saveBtn.textContent = "Synced";
+  } catch {
+    saveBtn.textContent = "Saved local";
   }
   window.setTimeout(() => {
     saveBtn.textContent = "Save";
@@ -2241,6 +2270,26 @@ async function loadRemoteKit() {
   } catch {
     // Keep the local kit if cloud sync is not reachable.
   }
+}
+
+async function copyReferralLink() {
+  const emailSlug = currentUser?.email ? currentUser.email.split("@")[0].replace(/[^a-z0-9]/gi, "").slice(0, 18) : "student";
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("ref", emailSlug || "student");
+  const text = `Try SynapseDeck AI for notes, flashcards, quizzes, and an AI tutor: ${url.toString()}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    referralStatus.textContent = "Invite link copied.";
+    copyReferralBtn.textContent = "Copied";
+  } catch {
+    downloadTextFile("synapsedeck-invite.txt", text);
+    referralStatus.textContent = "Invite file downloaded.";
+  }
+  window.setTimeout(() => {
+    copyReferralBtn.textContent = "Copy invite link";
+  }, 1000);
 }
 
 function loadKit() {
@@ -2616,28 +2665,50 @@ gameBoard.addEventListener("keydown", (event) => {
 
 assistantForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!requirePro("AI assistant")) {
+    return;
+  }
+  if (!requireAccount("AI assistant")) {
+    return;
+  }
   askAssistant(assistantInput.value);
   assistantInput.value = "";
 });
 
 document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
   button.addEventListener("click", () => {
+    if (!requirePro("AI assistant")) {
+      return;
+    }
+    if (!requireAccount("AI assistant")) {
+      return;
+    }
     askAssistant(button.dataset.assistantPrompt);
   });
 });
 
 chooseFileBtn.addEventListener("click", () => {
+  if (!requireAccount("File uploads")) {
+    return;
+  }
   fileInput.click();
 });
 
 fileDropZone.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
+    if (!requireAccount("File uploads")) {
+      return;
+    }
     fileInput.click();
   }
 });
 
 fileInput.addEventListener("change", () => {
+  if (!requireAccount("File uploads")) {
+    fileInput.value = "";
+    return;
+  }
   addStudyFiles(fileInput.files);
   fileInput.value = "";
 });
@@ -2657,6 +2728,9 @@ fileInput.addEventListener("change", () => {
 });
 
 fileDropZone.addEventListener("drop", (event) => {
+  if (!requireAccount("File uploads")) {
+    return;
+  }
   addStudyFiles(event.dataTransfer.files);
 });
 
@@ -2677,8 +2751,18 @@ integrationGrid.addEventListener("click", (event) => {
 });
 
 copyIntegrationPayloadBtn.addEventListener("click", copyIntegrationPayload);
-createRoomBtn.addEventListener("click", createCollabRoom);
-copyInviteBtn.addEventListener("click", copyCollabInvite);
+createRoomBtn.addEventListener("click", () => {
+  if (!requireAccount("Collab rooms")) {
+    return;
+  }
+  createCollabRoom();
+});
+copyInviteBtn.addEventListener("click", () => {
+  if (!requireAccount("Collab invites")) {
+    return;
+  }
+  copyCollabInvite();
+});
 peerChallengeBtn.addEventListener("click", createPeerChallenge);
 exportGroupReportBtn.addEventListener("click", exportGroupReport);
 collabModeSelect.addEventListener("change", () => {
@@ -2845,11 +2929,18 @@ document.querySelectorAll("[data-visual-style]").forEach((button) => {
   button.addEventListener("click", () => {
     visualStyle = button.dataset.visualStyle;
     visualHelp.textContent = `Style set to ${button.textContent}.`;
-    renderReferenceImages();
+    if (hasProAccess()) {
+      renderReferenceImages();
+    }
   });
 });
 
-generateVisualsBtn.addEventListener("click", renderReferenceImages);
+generateVisualsBtn.addEventListener("click", () => {
+  if (!requirePro("Reference visuals")) {
+    return;
+  }
+  renderReferenceImages();
+});
 
 referenceGallery.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-download-visual]");
@@ -2862,6 +2953,12 @@ referenceGallery.addEventListener("click", (event) => {
 });
 
 async function runResearch() {
+  if (!requirePro("Web research")) {
+    return;
+  }
+  if (!requireAccount("Web research")) {
+    return;
+  }
   if (!currentKit) {
     researchResults.innerHTML = `<article class="research-card"><p>Generate a kit first so the app knows what to search for.</p></article>`;
     return;
@@ -2941,6 +3038,7 @@ sampleBtn.addEventListener("click", () => {
 saveBtn.addEventListener("click", saveKit);
 exportBtn.addEventListener("click", exportKit);
 obsidianBtn.addEventListener("click", exportObsidianKit);
+copyReferralBtn.addEventListener("click", copyReferralLink);
 loginBtn.addEventListener("click", () => submitAuth("login"));
 signupBtn.addEventListener("click", () => submitAuth("signup"));
 logoutBtn.addEventListener("click", logout);

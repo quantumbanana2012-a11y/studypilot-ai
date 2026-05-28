@@ -1,6 +1,6 @@
 # SynapseDeck AI
 
-Luxury AI study app with generated study kits, flashcards, quizzes, games, calculator, assistant chat, Obsidian export, beta accounts, saved kits, and Stripe-ready monetization.
+Luxury AI study app with generated study kits, flashcards, quizzes, games, calculator, assistant chat, Obsidian export, accounts, saved kits, Razorpay, Stripe, and ad monetization.
 
 ## Run Locally
 
@@ -43,7 +43,7 @@ ADSENSE_WORKSPACE_SLOT=...
 
 ## Ads
 
-Free users see AdSense placements when `ADS_ENABLED=true` and the AdSense client/slot IDs are configured. Pro and School users do not see ads.
+Starter users see AdSense placements when `ADS_ENABLED=true` and the AdSense client/slot IDs are configured. Pro and School users do not see ads.
 
 Default hosted AI option:
 
