@@ -112,11 +112,11 @@ const termEdgeStopWords = new Set([
 const sampleNotes = `Photosynthesis is the process plants use to convert light energy into chemical energy. It happens mainly in chloroplasts, where chlorophyll captures sunlight. The light-dependent reactions split water, release oxygen, and produce ATP and NADPH. The Calvin cycle uses carbon dioxide, ATP, and NADPH to create glucose. Glucose stores energy that plants use for growth and cellular respiration. Factors such as light intensity, carbon dioxide concentration, and temperature affect the rate of photosynthesis. If light is limited, the light-dependent reactions slow down. If temperature is too high, enzymes in the Calvin cycle can become less effective.`;
 
 let currentKit = null;
-let currentPlan = localStorage.getItem("studyPilotPlan") || "free";
-let authToken = localStorage.getItem("studyPilotAuthToken") || "";
+let currentPlan = localStorage.getItem("synapseDeckPlan") || "free";
+let authToken = localStorage.getItem("synapseDeckAuthToken") || "";
 let currentUser = null;
 let assistantHistory = [];
-let assistantSessionId = localStorage.getItem("studyPilotAssistantSession");
+let assistantSessionId = localStorage.getItem("synapseDeckAssistantSession");
 let modelConfig = {
   ready: false,
   model: "Cloud model",
@@ -139,10 +139,10 @@ let visualStyle = "diagram";
 let calcEntries = [];
 let importedFiles = [];
 let pdfJsLibPromise = null;
-let collabRoom = JSON.parse(localStorage.getItem("studyPilotCollabRoom") || "null");
+let collabRoom = JSON.parse(localStorage.getItem("synapseDeckCollabRoom") || "null");
 if (!assistantSessionId) {
   assistantSessionId = `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  localStorage.setItem("studyPilotAssistantSession", assistantSessionId);
+  localStorage.setItem("synapseDeckAssistantSession", assistantSessionId);
 }
 let gameState = {
   mode: "match",
@@ -496,13 +496,13 @@ async function loadAccount() {
     const payload = await response.json();
     currentUser = payload.user;
     currentPlan = currentUser.plan || "free";
-    localStorage.setItem("studyPilotPlan", currentPlan);
+    localStorage.setItem("synapseDeckPlan", currentPlan);
     applyPlanState();
     await loadRemoteKit();
   } catch {
     authToken = "";
     currentUser = null;
-    localStorage.removeItem("studyPilotAuthToken");
+    localStorage.removeItem("synapseDeckAuthToken");
     renderAccount();
   }
 }
@@ -524,8 +524,8 @@ async function submitAuth(mode) {
     authToken = payload.token;
     currentUser = payload.user;
     currentPlan = currentUser.plan || "free";
-    localStorage.setItem("studyPilotAuthToken", authToken);
-    localStorage.setItem("studyPilotPlan", currentPlan);
+    localStorage.setItem("synapseDeckAuthToken", authToken);
+    localStorage.setItem("synapseDeckPlan", currentPlan);
     authPassword.value = "";
     applyPlanState();
     await loadRemoteKit();
@@ -548,8 +548,8 @@ async function logout() {
   authToken = "";
   currentUser = null;
   currentPlan = "free";
-  localStorage.removeItem("studyPilotAuthToken");
-  localStorage.setItem("studyPilotPlan", currentPlan);
+  localStorage.removeItem("synapseDeckAuthToken");
+  localStorage.setItem("synapseDeckPlan", currentPlan);
   applyPlanState();
 }
 
@@ -721,7 +721,7 @@ async function startCheckout(plan) {
           }
           currentUser = payload.user;
           currentPlan = payload.user.plan || plan;
-          localStorage.setItem("studyPilotPlan", currentPlan);
+          localStorage.setItem("synapseDeckPlan", currentPlan);
           applyPlanState();
           hideUpgrade();
         }
@@ -752,7 +752,7 @@ function setPlan(plan) {
   if (currentUser) {
     currentUser.plan = plan;
   }
-  localStorage.setItem("studyPilotPlan", plan);
+  localStorage.setItem("synapseDeckPlan", plan);
   applyPlanState();
   hideUpgrade();
 }
@@ -985,7 +985,7 @@ function createCollabRoom() {
     inviteText,
     createdAt: new Date().toISOString()
   };
-  localStorage.setItem("studyPilotCollabRoom", JSON.stringify(collabRoom));
+  localStorage.setItem("synapseDeckCollabRoom", JSON.stringify(collabRoom));
   renderCollaboration();
 }
 
@@ -2014,7 +2014,7 @@ async function saveKit() {
   }
 
   const payload = savedKitPayload();
-  localStorage.setItem("studyPilotKit", JSON.stringify(payload));
+  localStorage.setItem("synapseDeckKit", JSON.stringify(payload));
 
   if (currentUser) {
     try {
@@ -2051,7 +2051,7 @@ async function loadRemoteKit() {
     }
     const payload = await response.json();
     if (payload.kit) {
-      localStorage.setItem("studyPilotKit", JSON.stringify(payload.kit));
+      localStorage.setItem("synapseDeckKit", JSON.stringify(payload.kit));
       applySavedKit(payload.kit);
     }
   } catch {
@@ -2060,7 +2060,7 @@ async function loadRemoteKit() {
 }
 
 function loadKit() {
-  const stored = localStorage.getItem("studyPilotKit");
+  const stored = localStorage.getItem("synapseDeckKit");
   if (!stored) {
     return;
   }
@@ -2069,7 +2069,7 @@ function loadKit() {
     const saved = JSON.parse(stored);
     applySavedKit(saved);
   } catch {
-    localStorage.removeItem("studyPilotKit");
+    localStorage.removeItem("synapseDeckKit");
   }
 }
 
@@ -2500,7 +2500,7 @@ exportGroupReportBtn.addEventListener("click", exportGroupReport);
 collabModeSelect.addEventListener("change", () => {
   if (collabRoom) {
     collabRoom.mode = collabModeSelect.value;
-    localStorage.setItem("studyPilotCollabRoom", JSON.stringify(collabRoom));
+    localStorage.setItem("synapseDeckCollabRoom", JSON.stringify(collabRoom));
   }
   renderCollaboration();
 });
@@ -2783,7 +2783,7 @@ upgradeModal.addEventListener("click", (event) => {
   }
 });
 clearBtn.addEventListener("click", () => {
-  localStorage.removeItem("studyPilotKit");
+  localStorage.removeItem("synapseDeckKit");
   notesInput.value = "";
   currentKit = null;
   resetTimer();

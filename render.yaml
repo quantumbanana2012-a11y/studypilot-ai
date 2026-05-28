@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: studypilot-ai
+    name: synapsedeck-ai
     env: node
     plan: free
     buildCommand: npm install
@@ -46,7 +46,7 @@ services:
       - key: RAZORPAY_SCHOOL_AMOUNT
         value: 9900
       - key: DATABASE_PATH
-        value: ./data/studypilot-db.json
+        value: ./data/synapsedeck-db.json
       - key: ADS_ENABLED
         value: false
       - key: ADSENSE_CLIENT_ID
