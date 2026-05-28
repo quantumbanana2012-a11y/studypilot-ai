@@ -1,4 +1,4 @@
-# StudyPilot AI
+# SynapseDeck AI
 
 Luxury AI study app with generated study kits, flashcards, quizzes, games, calculator, assistant chat, Obsidian export, beta accounts, saved kits, and Stripe-ready monetization.
 
@@ -34,7 +34,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...
-DATABASE_PATH=./data/studypilot-db.json
+DATABASE_PATH=./data/synapsedeck-db.json
 ADS_ENABLED=true
 ADSENSE_CLIENT_ID=ca-pub-...
 ADSENSE_SIDEBAR_SLOT=...
@@ -73,8 +73,8 @@ render.yaml
 Docker deploy is included:
 
 ```bash
-docker build -t studypilot-ai .
-docker run -p 4174:4174 --env-file .env studypilot-ai
+docker build -t synapsedeck-ai .
+docker run -p 4174:4174 --env-file .env synapsedeck-ai
 ```
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full launch checklist.

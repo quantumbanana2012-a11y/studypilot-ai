@@ -681,7 +681,7 @@ async function startCheckout(plan) {
   }
 
   if (!currentUser) {
-    upgradeNote.textContent = "Create an account first so the payment can attach to your StudyPilot plan.";
+    upgradeNote.textContent = "Create an account first so the payment can attach to your SynapseDeck plan.";
     authEmail.focus();
     return;
   }
@@ -775,7 +775,7 @@ function applyPlanState() {
 
 function integrationPayload() {
   return {
-    app: "StudyPilot AI",
+    app: "SynapseDeck AI",
     generatedAt: new Date().toISOString(),
     plan: currentPlan,
     model: {
@@ -810,16 +810,16 @@ function makeCalendarExport() {
     const dateValue = (date) => date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
     return [
       "BEGIN:VEVENT",
-      `UID:studypilot-${Date.now()}-${index}@studypilot.ai`,
+      `UID:synapsedeck-${Date.now()}-${index}@synapsedeck.ai`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${dateValue(start)}`,
       `DTEND:${dateValue(end)}`,
-      `SUMMARY:StudyPilot review - ${titleCase(currentKit.focus)}`,
+      `SUMMARY:SynapseDeck review - ${titleCase(currentKit.focus)}`,
       `DESCRIPTION:${currentKit.plan.join("\\n").replace(/[,;]/g, " ")}`,
       "END:VEVENT"
     ].join("\n");
   });
-  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//StudyPilot AI//Study Review//EN", ...events, "END:VCALENDAR"].join("\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SynapseDeck AI//Study Review//EN", ...events, "END:VCALENDAR"].join("\n");
 }
 
 function renderIntegrations() {
@@ -915,7 +915,7 @@ function renderIntegrations() {
 }
 
 function makeRoomCode() {
-  return `SP-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  return `SD-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 function getCollabMembers() {
@@ -975,8 +975,8 @@ function createCollabRoom() {
   const members = getCollabMembers();
   const code = makeRoomCode();
   const mode = collabModeSelect.value;
-  const title = currentKit ? `${titleCase(currentKit.focus)} kit` : "StudyPilot kit";
-  const inviteText = `Join my StudyPilot room ${code} for ${title}. Goal: review cards, quiz each other, and fix weak spots.`;
+  const title = currentKit ? `${titleCase(currentKit.focus)} kit` : "SynapseDeck kit";
+  const inviteText = `Join my SynapseDeck room ${code} for ${title}. Goal: review cards, quiz each other, and fix weak spots.`;
   collabRoom = {
     code,
     mode,
@@ -990,7 +990,7 @@ function createCollabRoom() {
 }
 
 async function copyCollabInvite() {
-  const text = collabRoom?.inviteText || "Create a StudyPilot room first.";
+  const text = collabRoom?.inviteText || "Create a SynapseDeck room first.";
   try {
     await navigator.clipboard.writeText(text);
     copyInviteBtn.textContent = "Copied";
@@ -998,7 +998,7 @@ async function copyCollabInvite() {
       copyInviteBtn.textContent = "Copy Invite";
     }, 900);
   } catch {
-    downloadTextFile("studypilot-room-invite.txt", text);
+    downloadTextFile("synapsedeck-room-invite.txt", text);
   }
 }
 
@@ -1010,7 +1010,7 @@ function exportGroupReport() {
     weakSpots: currentKit?.weakSpots || [],
     dueCards: getDueCards()
   };
-  downloadTextFile("studypilot-group-report.json", JSON.stringify(payload, null, 2), "application/json");
+  downloadTextFile("synapsedeck-group-report.json", JSON.stringify(payload, null, 2), "application/json");
 }
 
 function createPeerChallenge() {
@@ -1019,14 +1019,14 @@ function createPeerChallenge() {
     return;
   }
   const challenge = [
-    `StudyPilot Peer Challenge: ${collabRoom?.code || "Demo Room"}`,
+    `SynapseDeck Peer Challenge: ${collabRoom?.code || "Demo Room"}`,
     "",
     "Answer these without looking:",
     ...currentKit.quiz.slice(0, 5).map((item, index) => `${index + 1}. ${item.question}`),
     "",
     `Beat my readiness score: ${calculateReadiness()}%`
   ].join("\n");
-  downloadTextFile("studypilot-peer-challenge.txt", challenge);
+  downloadTextFile("synapsedeck-peer-challenge.txt", challenge);
 }
 
 function applyBillingRedirectState() {
@@ -2079,7 +2079,7 @@ function exportKit() {
   }
 
   const lines = [
-    "StudyPilot AI Kit",
+    "SynapseDeck AI Kit",
     `Goal: ${currentKit.focus}`,
     `Difficulty: ${currentKit.difficulty}`,
     `Quiz mode: ${currentKit.quizMode}`,
@@ -2098,7 +2098,7 @@ function exportKit() {
     ...currentKit.plan.map((item, index) => `${index + 1}. ${item}`)
   ];
 
-  downloadTextFile("studypilot-kit.txt", lines.join("\n"));
+  downloadTextFile("synapsedeck-kit.txt", lines.join("\n"));
 }
 
 function exportFlashcardsTsv() {
@@ -2111,7 +2111,7 @@ function exportFlashcardsTsv() {
     card.answer.replace(/\t|\n/g, " "),
     card.term.replace(/\t|\n/g, " ")
   ].join("\t"));
-  downloadTextFile("studypilot-flashcards.tsv", ["Question\tAnswer\tTerm", ...rows].join("\n"), "text/tab-separated-values");
+  downloadTextFile("synapsedeck-flashcards.tsv", ["Question\tAnswer\tTerm", ...rows].join("\n"), "text/tab-separated-values");
 }
 
 async function copyIntegrationPayload() {
@@ -2123,7 +2123,7 @@ async function copyIntegrationPayload() {
       copyIntegrationPayloadBtn.textContent = "Copy Payload";
     }, 900);
   } catch {
-    downloadTextFile("studypilot-integration-payload.json", payload, "application/json");
+    downloadTextFile("synapsedeck-integration-payload.json", payload, "application/json");
   }
 }
 
@@ -2137,7 +2137,7 @@ function handleIntegrationAction(action) {
       showUpgrade("Generate a study kit before exporting review events.");
       return;
     }
-    downloadTextFile("studypilot-review-calendar.ics", makeCalendarExport(), "text/calendar");
+    downloadTextFile("synapsedeck-review-calendar.ics", makeCalendarExport(), "text/calendar");
     return;
   }
   if (action === "cards") {
@@ -2153,7 +2153,7 @@ function handleIntegrationAction(action) {
     return;
   }
   if (action === "docs") {
-    downloadTextFile("studypilot-cloud-ai-env.txt", [
+    downloadTextFile("synapsedeck-cloud-ai-env.txt", [
       "MODEL_PROVIDER=compatible",
       "COMPATIBLE_API_BASE_URL=https://openrouter.ai/api/v1",
       "COMPATIBLE_API_KEY=sk-or-v1_...",
@@ -2175,8 +2175,8 @@ function exportObsidianKit() {
   }
 
   const created = new Date(currentKit.createdAt);
-  const noteTitle = `StudyPilot ${titleCase(currentKit.focus)} Kit`;
-  const tags = ["study", "studypilot", currentKit.focus, currentKit.difficulty]
+  const noteTitle = `SynapseDeck ${titleCase(currentKit.focus)} Kit`;
+  const tags = ["study", "synapsedeck", currentKit.focus, currentKit.difficulty]
     .map((tag) => tag.replace(/[^a-z0-9-]/gi, "").toLowerCase());
   const termLinks = currentKit.terms.slice(0, 12).map(({ term }) => wikilinkTerm(term));
   const reviewDates = [1, 3, 7].map(formatDate);
@@ -2715,7 +2715,7 @@ async function runResearch() {
     }
   }
 
-  researchResults.innerHTML = `<article class="research-card"><p>Web research needs the StudyPilot Node server. Run <strong>npm start</strong> and open the app from that server before checking related sources.</p></article>`;
+  researchResults.innerHTML = `<article class="research-card"><p>Web research needs the SynapseDeck Node server. Run <strong>npm start</strong> and open the app from that server before checking related sources.</p></article>`;
 }
 
 researchBtn.addEventListener("click", runResearch);

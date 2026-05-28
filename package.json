@@ -1,8 +1,8 @@
 {
-  "name": "studypilot-ai",
+  "name": "synapsedeck-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "AI study app with local tutoring, games, review, and Stripe-ready monetization.",
+  "description": "AI study app with tutoring, games, review, Razorpay, Stripe, and ad monetization.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

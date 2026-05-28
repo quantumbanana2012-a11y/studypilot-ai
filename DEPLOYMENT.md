@@ -1,4 +1,4 @@
-# StudyPilot AI Release Plan
+# SynapseDeck AI Release Plan
 
 ## What Is Production-Ready Now
 
@@ -19,9 +19,9 @@ Use Stripe Checkout for subscriptions. Stripe Checkout creates a hosted payment 
 
 Required Stripe objects:
 
-- Product: `StudyPilot Pro`
+- Product: `SynapseDeck Pro`
 - Recurring monthly Price for Pro
-- Product: `StudyPilot School`
+- Product: `SynapseDeck School`
 - Recurring monthly Price for School
 
 Set these environment variables:
@@ -39,7 +39,7 @@ RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...
 PUBLIC_BASE_URL=https://your-domain.com
-DATABASE_PATH=./data/studypilot-db.json
+DATABASE_PATH=./data/synapsedeck-db.json
 ADS_ENABLED=true
 ADSENSE_CLIENT_ID=ca-pub-...
 ADSENSE_SIDEBAR_SLOT=...
@@ -190,6 +190,6 @@ This repo includes `render.yaml`.
 This repo includes a `Dockerfile`.
 
 ```bash
-docker build -t studypilot-ai .
-docker run -p 4174:4174 --env-file .env studypilot-ai
+docker build -t synapsedeck-ai .
+docker run -p 4174:4174 --env-file .env synapsedeck-ai
 ```

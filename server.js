@@ -5,7 +5,7 @@ const crypto = require("node:crypto");
 
 const root = __dirname;
 const dataDir = path.join(root, "data");
-const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "studypilot-db.json");
+const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "synapsedeck-db.json");
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "0.0.0.0";
 const modelProvider = process.env.MODEL_PROVIDER
@@ -185,7 +185,7 @@ function studyPrompt({ message, notes, kit }) {
 
 function systemPrompt() {
   return [
-    "You are StudyPilot's always-on AI tutor.",
+    "You are SynapseDeck's always-on AI tutor.",
     "Act like a patient study coach, not a generic chatbot.",
     "Ground answers in the user's notes and generated kit whenever possible.",
     "If asked to generate notes, produce useful study notes, headings, bullets, and recall prompts.",
@@ -306,7 +306,7 @@ async function runCompatibleAssistant(body, history) {
           "Authorization": `Bearer ${compatibleApiKey}`,
           "Content-Type": "application/json",
           "HTTP-Referer": publicBaseUrl,
-          "X-Title": "StudyPilot AI"
+          "X-Title": "SynapseDeck AI"
         },
         body: JSON.stringify({
           model,
@@ -579,8 +579,8 @@ async function handleRazorpayOrder(request, response) {
     amount: order.amount,
     currency: order.currency,
     plan,
-    name: "StudyPilot AI",
-    description: plan === "school" ? "StudyPilot School access" : "StudyPilot Pro access",
+    name: "SynapseDeck AI",
+    description: plan === "school" ? "SynapseDeck School access" : "SynapseDeck Pro access",
     prefill: {
       email: user.email
     }
@@ -714,7 +714,7 @@ async function handleResearch(request, response) {
   const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=6&prop=extracts|info&exintro=1&explaintext=1&inprop=url&format=json&origin=*`;
   const apiResponse = await fetch(url, {
     headers: {
-      "User-Agent": "StudyPilotAI/0.1 educational reference lookup"
+      "User-Agent": "SynapseDeckAI/0.1 educational reference lookup"
     }
   });
   const payload = await apiResponse.json();
@@ -780,7 +780,7 @@ const server = http.createServer(async (request, response) => {
     if (request.url === "/api/health") {
       sendJson(response, 200, {
         ok: true,
-        app: "StudyPilot AI",
+        app: "SynapseDeck AI",
         provider: modelProvider,
         model: modelProvider === "openai" ? openaiModel : modelProvider === "compatible" ? compatibleModel : ollamaModel,
         modelReady: modelProvider === "openai"
@@ -949,7 +949,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`StudyPilot server running on ${host}:${port}`);
+  console.log(`SynapseDeck server running on ${host}:${port}`);
   console.log(`Model provider: ${modelProvider}`);
   console.log(`OpenAI model: ${openaiModel}`);
   console.log(`Compatible model: ${compatibleModel}`);
