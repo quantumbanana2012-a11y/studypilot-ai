@@ -247,9 +247,32 @@
 
         <section id="flashcards" class="tab-panel" aria-labelledby="flashcards-tab">
           <div class="card-toolbar">
-            <p>Tap a card to flip it. Mark recall quality to update readiness.</p>
-            <button id="resetMasteryBtn" class="ghost-button" type="button">Reset mastery</button>
+            <p>Study-set mode: star cards, shuffle, and drill weak terms first.</p>
+            <div class="card-toolbar-actions">
+              <button id="starredOnlyBtn" class="ghost-button" type="button">Starred</button>
+              <button id="shuffleCardsBtn" class="ghost-button" type="button">Shuffle</button>
+              <button id="resetMasteryBtn" class="ghost-button" type="button">Reset mastery</button>
+            </div>
           </div>
+          <section class="study-set-panel" aria-label="Study set player">
+            <div class="study-set-copy">
+              <p class="eyebrow">Study set</p>
+              <h3 id="studySetTitle">Generate a kit to start</h3>
+              <p id="studySetPrompt">Weak cards appear first, then the set rotates until every term is familiar.</p>
+              <div class="study-set-stats" aria-label="Study set stats">
+                <span id="studyCardPosition">0 / 0</span>
+                <span id="studyCardMastery">New</span>
+                <span id="studyStarCount">0 starred</span>
+              </div>
+            </div>
+            <div id="studySetCard" class="study-set-card"></div>
+            <div class="study-set-actions">
+              <button id="prevStudyCardBtn" class="ghost-button" type="button">Previous</button>
+              <button id="flipStudyCardBtn" class="primary-button" type="button">Flip</button>
+              <button id="nextStudyCardBtn" class="ghost-button" type="button">Next</button>
+              <button id="starStudyCardBtn" class="ghost-button" type="button">Star</button>
+            </div>
+          </section>
           <div id="flashcardGrid" class="flashcard-grid"></div>
         </section>
 
@@ -604,6 +627,28 @@
         </section>
       </section>
     </main>
+
+    <div id="authGate" class="modal-backdrop auth-gate-backdrop" hidden>
+      <section class="upgrade-modal auth-gate" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+        <header>
+          <div>
+            <p class="eyebrow">SynapseDeck AI</p>
+            <h2 id="authGateTitle">Start with your account</h2>
+          </div>
+          <button id="authGateCloseBtn" class="ghost-button" type="button" aria-label="Continue as guest">Guest</button>
+        </header>
+        <p id="authGateStatus">Save study kits, sync progress, and unlock paid AI features.</p>
+        <div class="auth-fields auth-gate-fields">
+          <input id="gateAuthEmail" type="email" autocomplete="email" placeholder="Email" />
+          <input id="gateAuthPassword" type="password" autocomplete="current-password" placeholder="Password" />
+          <div class="auth-actions">
+            <button id="gateLoginBtn" class="ghost-button" type="button">Sign in</button>
+            <button id="gateSignupBtn" class="primary-button" type="button">Create account</button>
+          </div>
+        </div>
+        <button id="authGateGuestBtn" class="text-button" type="button">Continue as guest</button>
+      </section>
+    </div>
 
     <div id="upgradeModal" class="modal-backdrop" hidden>
       <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">

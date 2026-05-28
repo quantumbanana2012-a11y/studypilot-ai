@@ -30,6 +30,14 @@ const authPassword = document.querySelector("#authPassword");
 const loginBtn = document.querySelector("#loginBtn");
 const signupBtn = document.querySelector("#signupBtn");
 const logoutBtn = document.querySelector("#logoutBtn");
+const authGate = document.querySelector("#authGate");
+const authGateStatus = document.querySelector("#authGateStatus");
+const gateAuthEmail = document.querySelector("#gateAuthEmail");
+const gateAuthPassword = document.querySelector("#gateAuthPassword");
+const gateLoginBtn = document.querySelector("#gateLoginBtn");
+const gateSignupBtn = document.querySelector("#gateSignupBtn");
+const authGateCloseBtn = document.querySelector("#authGateCloseBtn");
+const authGateGuestBtn = document.querySelector("#authGateGuestBtn");
 const upgradeNote = document.querySelector("#upgradeNote");
 const resetMasteryBtn = document.querySelector("#resetMasteryBtn");
 const emptyState = document.querySelector("#emptyState");
@@ -46,6 +54,18 @@ const summaryList = document.querySelector("#summaryList");
 const termList = document.querySelector("#termList");
 const conceptMap = document.querySelector("#conceptMap");
 const flashcardGrid = document.querySelector("#flashcardGrid");
+const studySetTitle = document.querySelector("#studySetTitle");
+const studySetPrompt = document.querySelector("#studySetPrompt");
+const studySetCard = document.querySelector("#studySetCard");
+const studyCardPosition = document.querySelector("#studyCardPosition");
+const studyCardMastery = document.querySelector("#studyCardMastery");
+const studyStarCount = document.querySelector("#studyStarCount");
+const starredOnlyBtn = document.querySelector("#starredOnlyBtn");
+const shuffleCardsBtn = document.querySelector("#shuffleCardsBtn");
+const prevStudyCardBtn = document.querySelector("#prevStudyCardBtn");
+const flipStudyCardBtn = document.querySelector("#flipStudyCardBtn");
+const nextStudyCardBtn = document.querySelector("#nextStudyCardBtn");
+const starStudyCardBtn = document.querySelector("#starStudyCardBtn");
 const quizList = document.querySelector("#quizList");
 const quizScore = document.querySelector("#quizScore");
 const gameXp = document.querySelector("#gameXp");
@@ -152,6 +172,11 @@ let gameState = {
   matched: [],
   sprintIndex: 0,
   typeIndex: 0
+};
+let studySetState = {
+  index: 0,
+  flipped: false,
+  starredOnly: false
 };
 let timer = {
   secondsLeft: Number(sessionSelect.value) * 60,
@@ -481,6 +506,26 @@ function renderAccount() {
   logoutBtn.hidden = !signedIn;
 }
 
+function showAuthGate() {
+  if (!authGate || authToken || sessionStorage.getItem("synapseDeckAuthGateDismissed") === "true") {
+    return;
+  }
+  authGate.hidden = false;
+  document.body.classList.add("modal-open");
+  window.setTimeout(() => gateAuthEmail?.focus(), 60);
+}
+
+function hideAuthGate({ remember = false } = {}) {
+  if (!authGate) {
+    return;
+  }
+  authGate.hidden = true;
+  document.body.classList.remove("modal-open");
+  if (remember) {
+    sessionStorage.setItem("synapseDeckAuthGateDismissed", "true");
+  }
+}
+
 async function loadAccount() {
   if (!authToken) {
     renderAccount();
@@ -510,7 +555,14 @@ async function loadAccount() {
 async function submitAuth(mode) {
   const email = authEmail.value.trim();
   const password = authPassword.value;
+  return submitAuthCredentials(mode, email, password);
+}
+
+async function submitAuthCredentials(mode, email, password) {
   accountStatus.textContent = mode === "signup" ? "Creating account..." : "Signing in...";
+  if (authGateStatus && !authGate.hidden) {
+    authGateStatus.textContent = accountStatus.textContent;
+  }
   try {
     const response = await fetch(`${apiBase()}/api/auth/${mode}`, {
       method: "POST",
@@ -527,10 +579,18 @@ async function submitAuth(mode) {
     localStorage.setItem("synapseDeckAuthToken", authToken);
     localStorage.setItem("synapseDeckPlan", currentPlan);
     authPassword.value = "";
+    if (gateAuthPassword) {
+      gateAuthPassword.value = "";
+    }
+    hideAuthGate();
+    renderAccount();
     applyPlanState();
     await loadRemoteKit();
   } catch (error) {
     accountStatus.textContent = error.message;
+    if (authGateStatus && !authGate.hidden) {
+      authGateStatus.textContent = error.message;
+    }
   }
 }
 
@@ -1492,6 +1552,127 @@ function renderFlashcardFace(card, index, isAnswer = false) {
   `;
 }
 
+function masteryRank(card) {
+  const rank = {
+    missed: 0,
+    hard: 1,
+    new: 2,
+    shaky: 3,
+    known: 4,
+    easy: 5
+  };
+  return rank[card?.mastery] ?? 2;
+}
+
+function masteryLabel(card) {
+  return {
+    missed: "Missed",
+    hard: "Hard",
+    shaky: "Shaky",
+    known: "Known",
+    easy: "Easy",
+    new: "New"
+  }[card?.mastery] || "New";
+}
+
+function resetStudySet() {
+  studySetState = {
+    index: 0,
+    flipped: false,
+    starredOnly: false
+  };
+}
+
+function getStudySetCards() {
+  if (!currentKit?.flashcards?.length) {
+    return [];
+  }
+  const cards = studySetState.starredOnly
+    ? currentKit.flashcards.filter((card) => card.starred)
+    : currentKit.flashcards;
+  return [...cards].sort((a, b) => masteryRank(a) - masteryRank(b));
+}
+
+function getCurrentStudyCard() {
+  const cards = getStudySetCards();
+  if (!cards.length) {
+    return null;
+  }
+  studySetState.index = Math.max(0, Math.min(studySetState.index, cards.length - 1));
+  return cards[studySetState.index];
+}
+
+function renderStudySet() {
+  if (!studySetCard) {
+    return;
+  }
+  const allCards = currentKit?.flashcards || [];
+  const cards = getStudySetCards();
+  const card = getCurrentStudyCard();
+  const starredCount = allCards.filter((item) => item.starred).length;
+
+  starredOnlyBtn.classList.toggle("is-active", studySetState.starredOnly);
+  starredOnlyBtn.textContent = studySetState.starredOnly ? "All cards" : "Starred";
+  studyStarCount.textContent = `${starredCount} starred`;
+
+  if (!card) {
+    studySetTitle.textContent = studySetState.starredOnly ? "No starred cards yet" : "Generate a kit to start";
+    studySetPrompt.textContent = studySetState.starredOnly
+      ? "Star important cards from the full set, then drill only those."
+      : "Weak cards appear first, then the set rotates until every term is familiar.";
+    studyCardPosition.textContent = `0 / ${allCards.length}`;
+    studyCardMastery.textContent = "New";
+    studySetCard.innerHTML = `
+      <div class="study-set-empty">
+        <strong>${studySetState.starredOnly ? "Nothing starred yet" : "Build a study set"}</strong>
+        <p>${studySetState.starredOnly ? "Mark a few important cards with Star to create a focused deck." : "Add notes and generate cards to start reviewing."}</p>
+      </div>
+    `;
+    prevStudyCardBtn.disabled = true;
+    flipStudyCardBtn.disabled = true;
+    nextStudyCardBtn.disabled = true;
+    starStudyCardBtn.disabled = true;
+    return;
+  }
+
+  const sourceIndex = allCards.indexOf(card);
+  studySetTitle.textContent = card.term;
+  studySetPrompt.textContent = studySetState.starredOnly
+    ? "Focused mode is showing only starred cards."
+    : "Learn mode sorts weak and new cards first.";
+  studyCardPosition.textContent = `${studySetState.index + 1} / ${cards.length}`;
+  studyCardMastery.textContent = masteryLabel(card);
+  studySetCard.innerHTML = `
+    <button class="study-set-flip" type="button" data-study-flip aria-expanded="${studySetState.flipped}">
+      ${renderFlashcardFace(card, sourceIndex, studySetState.flipped)}
+    </button>
+    <div class="study-quality-row" aria-label="Mark current card recall">
+      <button class="quality-button ${card.mastery === "missed" ? "is-selected" : ""}" data-study-quality="missed" type="button">1</button>
+      <button class="quality-button ${card.mastery === "hard" ? "is-selected" : ""}" data-study-quality="hard" type="button">2</button>
+      <button class="quality-button ${card.mastery === "shaky" ? "is-selected" : ""}" data-study-quality="shaky" type="button">3</button>
+      <button class="quality-button ${card.mastery === "known" ? "is-selected" : ""}" data-study-quality="known" type="button">4</button>
+      <button class="quality-button ${card.mastery === "easy" ? "is-selected" : ""}" data-study-quality="easy" type="button">5</button>
+    </div>
+  `;
+  prevStudyCardBtn.disabled = cards.length < 2;
+  flipStudyCardBtn.disabled = false;
+  nextStudyCardBtn.disabled = cards.length < 2;
+  starStudyCardBtn.disabled = false;
+  starStudyCardBtn.classList.toggle("is-active", Boolean(card.starred));
+  starStudyCardBtn.textContent = card.starred ? "Starred" : "Star";
+}
+
+function moveStudyCard(delta) {
+  const cards = getStudySetCards();
+  if (!cards.length) {
+    renderStudySet();
+    return;
+  }
+  studySetState.index = (studySetState.index + delta + cards.length) % cards.length;
+  studySetState.flipped = false;
+  renderStudySet();
+}
+
 function buildKit() {
   const text = notesInput.value.trim();
   if (!text) {
@@ -1532,6 +1713,7 @@ function buildKit() {
     plan: makePlan(minutes, focus, difficulty, terms)
   };
 
+  resetStudySet();
   resetGames();
   resetAssistant();
   resetTimer();
@@ -1550,6 +1732,7 @@ function renderKit() {
     readingTime.textContent = "0 min";
     keyTermCount.textContent = "0";
     applyPlanState();
+    renderStudySet();
     return;
   }
 
@@ -1595,6 +1778,7 @@ function renderKit() {
       </div>
     </article>
   `).join("");
+  renderStudySet();
 
   quizList.innerHTML = currentKit.quiz.map((item, index) => `
     <article class="quiz-card">
@@ -2760,10 +2944,30 @@ obsidianBtn.addEventListener("click", exportObsidianKit);
 loginBtn.addEventListener("click", () => submitAuth("login"));
 signupBtn.addEventListener("click", () => submitAuth("signup"));
 logoutBtn.addEventListener("click", logout);
+gateLoginBtn.addEventListener("click", () => {
+  authEmail.value = gateAuthEmail.value.trim();
+  authPassword.value = gateAuthPassword.value;
+  submitAuthCredentials("login", authEmail.value, authPassword.value);
+});
+gateSignupBtn.addEventListener("click", () => {
+  authEmail.value = gateAuthEmail.value.trim();
+  authPassword.value = gateAuthPassword.value;
+  submitAuthCredentials("signup", authEmail.value, authPassword.value);
+});
+authGateCloseBtn.addEventListener("click", () => hideAuthGate({ remember: true }));
+authGateGuestBtn.addEventListener("click", () => hideAuthGate({ remember: true }));
 authPassword.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     submitAuth("login");
+  }
+});
+gateAuthPassword.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    authEmail.value = gateAuthEmail.value.trim();
+    authPassword.value = gateAuthPassword.value;
+    submitAuthCredentials("login", authEmail.value, authPassword.value);
   }
 });
 upgradeBtn.addEventListener("click", () => showUpgrade("Choose a plan to unlock deeper study sessions."));
@@ -2786,6 +2990,7 @@ clearBtn.addEventListener("click", () => {
   localStorage.removeItem("synapseDeckKit");
   notesInput.value = "";
   currentKit = null;
+  resetStudySet();
   resetTimer();
   renderKit();
 });
@@ -2797,7 +3002,61 @@ resetMasteryBtn.addEventListener("click", () => {
     card.mastery = "new";
     card.nextReview = isoDate(0);
   });
+  studySetState.index = 0;
+  studySetState.flipped = false;
   renderKit();
+});
+starredOnlyBtn.addEventListener("click", () => {
+  studySetState.starredOnly = !studySetState.starredOnly;
+  studySetState.index = 0;
+  studySetState.flipped = false;
+  renderStudySet();
+});
+shuffleCardsBtn.addEventListener("click", () => {
+  if (!currentKit?.flashcards?.length) {
+    return;
+  }
+  currentKit.flashcards = [...currentKit.flashcards].sort(() => Math.random() - 0.5);
+  studySetState.index = 0;
+  studySetState.flipped = false;
+  renderKit();
+});
+prevStudyCardBtn.addEventListener("click", () => moveStudyCard(-1));
+nextStudyCardBtn.addEventListener("click", () => moveStudyCard(1));
+flipStudyCardBtn.addEventListener("click", () => {
+  studySetState.flipped = !studySetState.flipped;
+  renderStudySet();
+});
+starStudyCardBtn.addEventListener("click", () => {
+  const card = getCurrentStudyCard();
+  if (!card) {
+    return;
+  }
+  card.starred = !card.starred;
+  if (studySetState.starredOnly && !card.starred) {
+    studySetState.index = Math.max(0, studySetState.index - 1);
+  }
+  renderKit();
+});
+studySetCard.addEventListener("click", (event) => {
+  const qualityButton = event.target.closest("button[data-study-quality]");
+  if (qualityButton) {
+    const card = getCurrentStudyCard();
+    if (!card) {
+      return;
+    }
+    const quality = qualityButton.dataset.studyQuality;
+    card.mastery = quality;
+    card.nextReview = isoDate(scheduleForQuality(quality));
+    moveStudyCard(1);
+    renderKit();
+    return;
+  }
+
+  if (event.target.closest("button[data-study-flip]")) {
+    studySetState.flipped = !studySetState.flipped;
+    renderStudySet();
+  }
 });
 sessionSelect.addEventListener("change", resetTimer);
 cardCountSelect.addEventListener("change", () => {
@@ -2827,6 +3086,7 @@ async function boot() {
   await loadBillingConfig();
   await loadAdsConfig();
   await loadAccount();
+  showAuthGate();
   renderCollaboration();
   renderTimer();
 }
