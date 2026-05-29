@@ -5,7 +5,7 @@ const crypto = require("node:crypto");
 
 const root = __dirname;
 const dataDir = path.join(root, "data");
-const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "synapsedeck-db.json");
+const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "zentradeck-db.json");
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "0.0.0.0";
 const modelProvider = process.env.MODEL_PROVIDER
@@ -36,6 +36,9 @@ const adsenseClientId = process.env.ADSENSE_CLIENT_ID || "";
 const adsenseSidebarSlot = process.env.ADSENSE_SIDEBAR_SLOT || "";
 const adsenseWorkspaceSlot = process.env.ADSENSE_WORKSPACE_SLOT || "";
 const adsEnabled = process.env.ADS_ENABLED === "true" || Boolean(adsenseClientId);
+const donationUrl = process.env.DONATION_URL || "";
+const donationUpiId = process.env.DONATION_UPI_ID || "";
+const donationLabel = process.env.DONATION_LABEL || "Support ZentraDeck";
 const conversations = new Map();
 
 function ensureDatabase() {
@@ -185,7 +188,7 @@ function studyPrompt({ message, notes, kit }) {
 
 function systemPrompt() {
   return [
-    "You are SynapseDeck's always-on AI tutor.",
+    "You are ZentraDeck's always-on AI tutor.",
     "Act like a patient study coach, not a generic chatbot.",
     "Ground answers in the user's notes and generated kit whenever possible.",
     "If asked to generate notes, produce useful study notes, headings, bullets, and recall prompts.",
@@ -306,7 +309,7 @@ async function runCompatibleAssistant(body, history) {
           "Authorization": `Bearer ${compatibleApiKey}`,
           "Content-Type": "application/json",
           "HTTP-Referer": publicBaseUrl,
-          "X-Title": "SynapseDeck AI"
+          "X-Title": "ZentraDeck AI"
         },
         body: JSON.stringify({
           model,
@@ -579,8 +582,8 @@ async function handleRazorpayOrder(request, response) {
     amount: order.amount,
     currency: order.currency,
     plan,
-    name: "SynapseDeck AI",
-    description: plan === "school" ? "SynapseDeck School access" : "SynapseDeck Pro access",
+    name: "ZentraDeck AI",
+    description: plan === "school" ? "ZentraDeck School access" : "ZentraDeck Pro access",
     prefill: {
       email: user.email
     }
@@ -714,7 +717,7 @@ async function handleResearch(request, response) {
   const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=6&prop=extracts|info&exintro=1&explaintext=1&inprop=url&format=json&origin=*`;
   const apiResponse = await fetch(url, {
     headers: {
-      "User-Agent": "SynapseDeckAI/0.1 educational reference lookup"
+      "User-Agent": "ZentraDeckAI/0.1 educational reference lookup"
     }
   });
   const payload = await apiResponse.json();
@@ -780,7 +783,7 @@ const server = http.createServer(async (request, response) => {
     if (request.url === "/api/health") {
       sendJson(response, 200, {
         ok: true,
-        app: "SynapseDeck AI",
+        app: "ZentraDeck AI",
         provider: modelProvider,
         model: modelProvider === "openai" ? openaiModel : modelProvider === "compatible" ? compatibleModel : ollamaModel,
         modelReady: modelProvider === "openai"
@@ -791,6 +794,7 @@ const server = http.createServer(async (request, response) => {
         billingReady: Boolean(stripeSecretKey && stripeProPriceId),
         razorpayReady: Boolean(razorpayKeyId && razorpayKeySecret),
         adsReady: Boolean(adsEnabled && adsenseClientId),
+        donationReady: Boolean(donationUrl || donationUpiId),
         accountsReady: true,
         database: path.basename(databasePath),
         uptimeSeconds: Math.round(process.uptime())
@@ -903,6 +907,16 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.url === "/api/donations/config") {
+      sendJson(response, 200, {
+        enabled: Boolean(donationUrl || donationUpiId),
+        url: donationUrl,
+        upiId: donationUpiId,
+        label: donationLabel
+      });
+      return;
+    }
+
     if (request.url === "/api/billing/checkout" && request.method === "POST") {
       await handleCheckout(request, response);
       return;
@@ -949,7 +963,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`SynapseDeck server running on ${host}:${port}`);
+  console.log(`ZentraDeck server running on ${host}:${port}`);
   console.log(`Model provider: ${modelProvider}`);
   console.log(`OpenAI model: ${openaiModel}`);
   console.log(`Compatible model: ${compatibleModel}`);

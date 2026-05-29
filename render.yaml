@@ -55,3 +55,9 @@ services:
         sync: false
       - key: ADSENSE_WORKSPACE_SLOT
         sync: false
+      - key: DONATION_URL
+        sync: false
+      - key: DONATION_UPI_ID
+        sync: false
+      - key: DONATION_LABEL
+        value: Support ZentraDeck

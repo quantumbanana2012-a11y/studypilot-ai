@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SynapseDeck AI</title>
+    <title>ZentraDeck AI</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <aside class="sidebar" aria-label="Study setup">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true">SD</div>
+          <div class="brand-mark" aria-hidden="true">ZD</div>
           <div>
-            <h1>SynapseDeck AI</h1>
+            <h1>ZentraDeck AI</h1>
             <p>Paste notes. Get flashcards, quizzes, games, and an AI tutor.</p>
           </div>
         </div>
@@ -129,11 +129,22 @@
           <div class="panel-heading">
             <div>
               <h2 id="referral-heading">Invite</h2>
-              <p>Share SynapseDeck with classmates and study groups.</p>
+              <p>Share ZentraDeck with classmates and study groups.</p>
             </div>
           </div>
           <button id="copyReferralBtn" class="ghost-button" type="button">Copy invite link</button>
           <small id="referralStatus">Referral rewards can plug in after payments are live.</small>
+        </section>
+
+        <section class="panel donation-panel" aria-labelledby="donation-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="donation-heading">Support</h2>
+              <p>Take donations while checkout waits on KYC.</p>
+            </div>
+          </div>
+          <button id="donateBtn" class="primary-button" type="button">Donate / Support</button>
+          <small id="donationStatus">Add DONATION_URL or DONATION_UPI_ID in Render.</small>
         </section>
 
         <footer class="site-footer">
@@ -150,6 +161,7 @@
             <h2 id="kitTitle">Ready when your notes are</h2>
           </div>
           <div class="topbar-actions">
+            <button id="tutorialBtn" class="utility-button" type="button" title="Open guided tour">Tour</button>
             <button id="exportBtn" class="utility-button" type="button" title="Export kit">Export</button>
             <button id="obsidianBtn" class="utility-button premium-action" type="button" title="Export Obsidian Markdown">Obsidian Pro</button>
             <button id="saveBtn" class="utility-button" type="button" title="Save kit">Save</button>
@@ -292,6 +304,31 @@
             <h3>Quick Check</h3>
             <strong id="quizScore">0 / 0</strong>
           </div>
+          <section class="custom-quiz-panel" aria-label="Custom quiz builder">
+            <label>
+              Focus
+              <input id="customQuizFocus" type="text" placeholder="hard terms, formulas, definitions" />
+            </label>
+            <label>
+              Questions
+              <select id="customQuizCount">
+                <option value="4">4</option>
+                <option value="6" selected>6</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
+              </select>
+            </label>
+            <label>
+              Style
+              <select id="customQuizType">
+                <option value="mixed">Mixed</option>
+                <option value="choice">Multiple choice</option>
+                <option value="typed">Typed answers</option>
+                <option value="truefalse">True / false</option>
+              </select>
+            </label>
+            <button id="customQuizBtn" class="primary-button" type="button">Build custom quiz</button>
+          </section>
           <div id="quizList" class="quiz-list"></div>
         </section>
 
@@ -639,11 +676,49 @@
       </section>
     </main>
 
+    <div id="tutorialModal" class="modal-backdrop tutorial-backdrop" hidden>
+      <section class="upgrade-modal tutorial-modal" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+        <header>
+          <div>
+            <p class="eyebrow">2 minute setup</p>
+            <h2 id="tutorialTitle">Make your first study kit</h2>
+          </div>
+          <button id="closeTutorialBtn" class="icon-button" type="button" aria-label="Close tutorial">X</button>
+        </header>
+        <div class="tutorial-steps">
+          <article>
+            <span>1</span>
+            <strong>Paste notes or upload a PDF</strong>
+            <p>Use class notes, a lesson, transcript, or textbook section.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <strong>Generate cards and quizzes</strong>
+            <p>ZentraDeck turns the source into recall cards, a quiz, games, and a review plan.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <strong>Ask the AI tutor</strong>
+            <p>Sign in, then ask for hints, explanations, or a new practice question.</p>
+          </article>
+          <article>
+            <span>4</span>
+            <strong>Share and improve</strong>
+            <p>Copy an invite link, challenge friends, and use custom quizzes for weak topics.</p>
+          </article>
+        </div>
+        <div class="tutorial-actions">
+          <button id="tutorialSampleBtn" class="ghost-button" type="button">Load sample</button>
+          <button id="tutorialStartBtn" class="primary-button" type="button">Start building</button>
+        </div>
+      </section>
+    </div>
+
     <div id="authGate" class="modal-backdrop auth-gate-backdrop" hidden>
       <section class="upgrade-modal auth-gate" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
         <header>
           <div>
-            <p class="eyebrow">SynapseDeck AI</p>
+            <p class="eyebrow">ZentraDeck AI</p>
             <h2 id="authGateTitle">Start with your account</h2>
           </div>
           <button id="authGateCloseBtn" class="ghost-button" type="button" aria-label="Continue as guest">Guest</button>
@@ -665,7 +740,7 @@
       <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">
         <header>
           <div>
-            <p class="eyebrow">SynapseDeck pricing</p>
+            <p class="eyebrow">ZentraDeck pricing</p>
             <h2 id="upgradeTitle">Unlock deeper study sessions</h2>
           </div>
           <button id="closeUpgradeBtn" class="icon-button" type="button" aria-label="Close upgrade">X</button>
@@ -677,6 +752,7 @@
             <p>Preview the product with ads and limited exports.</p>
             <ul>
               <li>8 cards per kit</li>
+              <li>AI tutor after sign-in</li>
               <li>Basic quiz and match game</li>
               <li>Plain text export</li>
             </ul>
@@ -689,6 +765,7 @@
             <ul>
               <li>16 cards per kit</li>
               <li>Sprint and Type games</li>
+              <li>Web research and reference visuals</li>
               <li>Obsidian export</li>
               <li>Challenge mode</li>
             </ul>

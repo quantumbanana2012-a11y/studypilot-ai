@@ -1995,12 +1995,21 @@ select.is-limited {
 }
 
 .tabs {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  align-items: center;
+  overflow: hidden;
   border-color: var(--line);
   background: rgba(6, 9, 14, 0.74);
   box-shadow: var(--shadow);
 }
 
 .tab {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--muted);
 }
 
@@ -2239,6 +2248,85 @@ button:hover {
 
 .assistant-messages .message:last-child {
   animation: premium-rise 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.custom-quiz-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(92px, 0.35fr) minmax(150px, 0.5fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(232, 198, 124, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.custom-quiz-panel label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.tutorial-backdrop {
+  z-index: 45;
+}
+
+.tutorial-modal {
+  max-width: 760px;
+}
+
+.tutorial-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tutorial-steps article {
+  min-height: 150px;
+  padding: 16px;
+  border: 1px solid rgba(232, 198, 124, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.tutorial-steps span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: rgba(232, 198, 124, 0.18);
+  color: var(--gold);
+  font-weight: 950;
+}
+
+.tutorial-steps strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #fff4c9;
+}
+
+.tutorial-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.donation-panel .primary-button,
+.referral-panel .ghost-button {
+  width: 100%;
+}
+
+@media (max-width: 920px) {
+  .custom-quiz-panel,
+  .tutorial-steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 .empty-visual span {

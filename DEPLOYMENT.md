@@ -1,4 +1,4 @@
-# SynapseDeck AI Release Plan
+# ZentraDeck AI Release Plan
 
 ## What Is Production-Ready Now
 
@@ -19,9 +19,9 @@ Use Stripe Checkout for subscriptions. Stripe Checkout creates a hosted payment 
 
 Required Stripe objects:
 
-- Product: `SynapseDeck Pro`
+- Product: `ZentraDeck Pro`
 - Recurring monthly Price for Pro
-- Product: `SynapseDeck School`
+- Product: `ZentraDeck School`
 - Recurring monthly Price for School
 
 Set these environment variables:
@@ -39,11 +39,13 @@ RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...
 PUBLIC_BASE_URL=https://your-domain.com
-DATABASE_PATH=./data/synapsedeck-db.json
+DATABASE_PATH=./data/zentradeck-db.json
 ADS_ENABLED=true
 ADSENSE_CLIENT_ID=ca-pub-...
 ADSENSE_SIDEBAR_SLOT=...
 ADSENSE_WORKSPACE_SLOT=...
+DONATION_URL=https://...
+DONATION_UPI_ID=name@bank
 ```
 
 The current checkout flow redirects to:
@@ -72,6 +74,14 @@ Listen for:
 
 Razorpay can be used instead of Stripe for India payments. Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`; the frontend will prefer Razorpay checkout when it is configured.
 
+If KYC is blocked, use donations temporarily:
+
+```bash
+DONATION_URL=https://your-support-link
+DONATION_UPI_ID=name@bank
+DONATION_LABEL=Support ZentraDeck
+```
+
 ## Must Add Before Real Launch
 
 1. Durable database
@@ -90,6 +100,15 @@ MODEL_PROVIDER=compatible
 COMPATIBLE_API_BASE_URL=https://openrouter.ai/api/v1
 COMPATIBLE_API_KEY=sk-or-v1_...
 COMPATIBLE_MODEL=openrouter/free
+```
+
+Groq-compatible example:
+
+```bash
+MODEL_PROVIDER=compatible
+COMPATIBLE_API_BASE_URL=https://api.groq.com/openai/v1
+COMPATIBLE_API_KEY=gsk_...
+COMPATIBLE_MODEL=llama-3.1-8b-instant
 ```
 
 4. Usage limits
@@ -190,6 +209,6 @@ This repo includes `render.yaml`.
 This repo includes a `Dockerfile`.
 
 ```bash
-docker build -t synapsedeck-ai .
-docker run -p 4174:4174 --env-file .env synapsedeck-ai
+docker build -t zentradeck-ai .
+docker run -p 4174:4174 --env-file .env zentradeck-ai
 ```

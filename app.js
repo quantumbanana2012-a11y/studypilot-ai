@@ -22,6 +22,13 @@ const planBadge = document.querySelector("#planBadge");
 const planStrip = document.querySelector("#planStrip");
 const copyReferralBtn = document.querySelector("#copyReferralBtn");
 const referralStatus = document.querySelector("#referralStatus");
+const donateBtn = document.querySelector("#donateBtn");
+const donationStatus = document.querySelector("#donationStatus");
+const tutorialBtn = document.querySelector("#tutorialBtn");
+const tutorialModal = document.querySelector("#tutorialModal");
+const closeTutorialBtn = document.querySelector("#closeTutorialBtn");
+const tutorialSampleBtn = document.querySelector("#tutorialSampleBtn");
+const tutorialStartBtn = document.querySelector("#tutorialStartBtn");
 const accountBadge = document.querySelector("#accountBadge");
 const sidebarAd = document.querySelector("#sidebarAd");
 const workspaceAd = document.querySelector("#workspaceAd");
@@ -70,6 +77,10 @@ const nextStudyCardBtn = document.querySelector("#nextStudyCardBtn");
 const starStudyCardBtn = document.querySelector("#starStudyCardBtn");
 const quizList = document.querySelector("#quizList");
 const quizScore = document.querySelector("#quizScore");
+const customQuizFocus = document.querySelector("#customQuizFocus");
+const customQuizCount = document.querySelector("#customQuizCount");
+const customQuizType = document.querySelector("#customQuizType");
+const customQuizBtn = document.querySelector("#customQuizBtn");
 const gameXp = document.querySelector("#gameXp");
 const gameStreak = document.querySelector("#gameStreak");
 const gameModeLabel = document.querySelector("#gameModeLabel");
@@ -134,11 +145,11 @@ const termEdgeStopWords = new Set([
 const sampleNotes = `Photosynthesis is the process plants use to convert light energy into chemical energy. It happens mainly in chloroplasts, where chlorophyll captures sunlight. The light-dependent reactions split water, release oxygen, and produce ATP and NADPH. The Calvin cycle uses carbon dioxide, ATP, and NADPH to create glucose. Glucose stores energy that plants use for growth and cellular respiration. Factors such as light intensity, carbon dioxide concentration, and temperature affect the rate of photosynthesis. If light is limited, the light-dependent reactions slow down. If temperature is too high, enzymes in the Calvin cycle can become less effective.`;
 
 let currentKit = null;
-let currentPlan = localStorage.getItem("synapseDeckPlan") || "free";
-let authToken = localStorage.getItem("synapseDeckAuthToken") || "";
+let currentPlan = localStorage.getItem("ZentraDeckPlan") || "free";
+let authToken = localStorage.getItem("ZentraDeckAuthToken") || "";
 let currentUser = null;
 let assistantHistory = [];
-let assistantSessionId = localStorage.getItem("synapseDeckAssistantSession");
+let assistantSessionId = localStorage.getItem("ZentraDeckAssistantSession");
 let modelConfig = {
   ready: false,
   model: "Cloud model",
@@ -157,14 +168,20 @@ let adsConfig = {
   workspaceSlot: "",
   apiBase: ""
 };
+let donationConfig = {
+  enabled: false,
+  url: "",
+  upiId: "",
+  label: "Support ZentraDeck"
+};
 let visualStyle = "diagram";
 let calcEntries = [];
 let importedFiles = [];
 let pdfJsLibPromise = null;
-let collabRoom = JSON.parse(localStorage.getItem("synapseDeckCollabRoom") || "null");
+let collabRoom = JSON.parse(localStorage.getItem("ZentraDeckCollabRoom") || "null");
 if (!assistantSessionId) {
   assistantSessionId = `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  localStorage.setItem("synapseDeckAssistantSession", assistantSessionId);
+  localStorage.setItem("ZentraDeckAssistantSession", assistantSessionId);
 }
 let gameState = {
   mode: "match",
@@ -475,7 +492,7 @@ function requireAccount(featureName) {
     return true;
   }
   showAuthGate();
-  accountStatus.textContent = `${featureName} needs a SynapseDeck account. Create one to continue.`;
+  accountStatus.textContent = `${featureName} needs a ZentraDeck account. Create one to continue.`;
   if (authGateStatus && !authGate.hidden) {
     authGateStatus.textContent = accountStatus.textContent;
   }
@@ -492,6 +509,29 @@ function requirePro(featureName) {
 
 function hideUpgrade() {
   upgradeModal.hidden = true;
+}
+
+function showTutorial({ force = false } = {}) {
+  if (!tutorialModal) {
+    return;
+  }
+  if (!force && localStorage.getItem("zentradeckTutorialSeen") === "true") {
+    return;
+  }
+  tutorialModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function hideTutorial({ remember = true } = {}) {
+  if (!tutorialModal) {
+    return;
+  }
+  tutorialModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  if (remember) {
+    localStorage.setItem("zentradeckTutorialSeen", "true");
+  }
+  showAuthGate();
 }
 
 function replayMotion(element, className) {
@@ -529,7 +569,7 @@ function renderAccount() {
 }
 
 function showAuthGate() {
-  if (!authGate || authToken || sessionStorage.getItem("synapseDeckAuthGateDismissed") === "true") {
+  if (!authGate || authToken || sessionStorage.getItem("ZentraDeckAuthGateDismissed") === "true") {
     return;
   }
   authGate.hidden = false;
@@ -544,7 +584,7 @@ function hideAuthGate({ remember = false } = {}) {
   authGate.hidden = true;
   document.body.classList.remove("modal-open");
   if (remember) {
-    sessionStorage.setItem("synapseDeckAuthGateDismissed", "true");
+    sessionStorage.setItem("ZentraDeckAuthGateDismissed", "true");
   }
 }
 
@@ -563,13 +603,13 @@ async function loadAccount() {
     const payload = await response.json();
     currentUser = payload.user;
     currentPlan = currentUser.plan || "free";
-    localStorage.setItem("synapseDeckPlan", currentPlan);
+    localStorage.setItem("ZentraDeckPlan", currentPlan);
     applyPlanState();
     await loadRemoteKit();
   } catch {
     authToken = "";
     currentUser = null;
-    localStorage.removeItem("synapseDeckAuthToken");
+    localStorage.removeItem("ZentraDeckAuthToken");
     renderAccount();
   }
 }
@@ -598,8 +638,8 @@ async function submitAuthCredentials(mode, email, password) {
     authToken = payload.token;
     currentUser = payload.user;
     currentPlan = currentUser.plan || "free";
-    localStorage.setItem("synapseDeckAuthToken", authToken);
-    localStorage.setItem("synapseDeckPlan", currentPlan);
+    localStorage.setItem("ZentraDeckAuthToken", authToken);
+    localStorage.setItem("ZentraDeckPlan", currentPlan);
     authPassword.value = "";
     if (gateAuthPassword) {
       gateAuthPassword.value = "";
@@ -630,8 +670,8 @@ async function logout() {
   authToken = "";
   currentUser = null;
   currentPlan = "free";
-  localStorage.removeItem("synapseDeckAuthToken");
-  localStorage.setItem("synapseDeckPlan", currentPlan);
+  localStorage.removeItem("ZentraDeckAuthToken");
+  localStorage.setItem("ZentraDeckPlan", currentPlan);
   applyPlanState();
 }
 
@@ -755,6 +795,54 @@ async function loadAdsConfig() {
   renderAds();
 }
 
+function renderDonation() {
+  if (!donateBtn || !donationStatus) {
+    return;
+  }
+  donateBtn.textContent = donationConfig.label || "Donate / Support";
+  donationStatus.textContent = donationConfig.enabled
+    ? "Donations are connected."
+    : "Add DONATION_URL or DONATION_UPI_ID in Render.";
+}
+
+async function loadDonationConfig() {
+  const endpoints = ["/api/donations/config", "http://127.0.0.1:4174/api/donations/config", "http://127.0.0.1:4175/api/donations/config"];
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        continue;
+      }
+      donationConfig = await response.json();
+      renderDonation();
+      return;
+    } catch {
+      // Try the next endpoint.
+    }
+  }
+  donationConfig = { enabled: false, url: "", upiId: "", label: "Support ZentraDeck" };
+  renderDonation();
+}
+
+async function openDonation() {
+  if (donationConfig.url) {
+    window.open(donationConfig.url, "_blank", "noreferrer");
+    return;
+  }
+  if (donationConfig.upiId) {
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(donationConfig.upiId)}&pn=${encodeURIComponent("ZentraDeck AI")}&tn=${encodeURIComponent("Support ZentraDeck AI")}`;
+    window.location.href = upiUrl;
+    return;
+  }
+  const text = "Support ZentraDeck AI: add DONATION_URL or DONATION_UPI_ID in Render.";
+  try {
+    await navigator.clipboard.writeText(text);
+    donationStatus.textContent = "Donation setup note copied.";
+  } catch {
+    donationStatus.textContent = "Add a donation link in Render first.";
+  }
+}
+
 async function startCheckout(plan) {
   if (!billingConfig.ready && !billingConfig.razorpayReady) {
     upgradeNote.textContent = "Payments are not configured yet. Add Razorpay or Stripe keys before selling paid plans.";
@@ -762,7 +850,7 @@ async function startCheckout(plan) {
   }
 
   if (!requireAccount("Upgrading")) {
-    upgradeNote.textContent = "Create an account first so payment can attach to your SynapseDeck plan.";
+    upgradeNote.textContent = "Create an account first so payment can attach to your ZentraDeck plan.";
     return;
   }
 
@@ -801,7 +889,7 @@ async function startCheckout(plan) {
           }
           currentUser = payload.user;
           currentPlan = payload.user.plan || plan;
-          localStorage.setItem("synapseDeckPlan", currentPlan);
+          localStorage.setItem("ZentraDeckPlan", currentPlan);
           applyPlanState();
           hideUpgrade();
         }
@@ -832,7 +920,7 @@ function setPlan(plan) {
   if (currentUser) {
     currentUser.plan = plan;
   }
-  localStorage.setItem("synapseDeckPlan", plan);
+  localStorage.setItem("ZentraDeckPlan", plan);
   applyPlanState();
   hideUpgrade();
 }
@@ -855,7 +943,7 @@ function applyPlanState() {
 
 function integrationPayload() {
   return {
-    app: "SynapseDeck AI",
+    app: "ZentraDeck AI",
     generatedAt: new Date().toISOString(),
     plan: currentPlan,
     model: {
@@ -890,16 +978,16 @@ function makeCalendarExport() {
     const dateValue = (date) => date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
     return [
       "BEGIN:VEVENT",
-      `UID:synapsedeck-${Date.now()}-${index}@synapsedeck.ai`,
+      `UID:ZentraDeck-${Date.now()}-${index}@ZentraDeck.ai`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${dateValue(start)}`,
       `DTEND:${dateValue(end)}`,
-      `SUMMARY:SynapseDeck review - ${titleCase(currentKit.focus)}`,
+      `SUMMARY:ZentraDeck review - ${titleCase(currentKit.focus)}`,
       `DESCRIPTION:${currentKit.plan.join("\\n").replace(/[,;]/g, " ")}`,
       "END:VEVENT"
     ].join("\n");
   });
-  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SynapseDeck AI//Study Review//EN", ...events, "END:VCALENDAR"].join("\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZentraDeck AI//Study Review//EN", ...events, "END:VCALENDAR"].join("\n");
 }
 
 function renderIntegrations() {
@@ -913,11 +1001,11 @@ function renderIntegrations() {
   const hasKit = Boolean(currentKit);
   const integrations = [
     {
-      name: "OpenRouter Cloud AI",
+      name: "Cloud AI Router",
       status: modelConfig.ready ? "Connected" : "Needs API key",
       detail: modelConfig.ready
         ? `Assistant is routed through ${modelConfig.model}.`
-        : "Add COMPATIBLE_API_KEY on the server to enable cloud AI.",
+        : "Use OpenRouter, Groq, Hugging Face, or OpenAI-compatible APIs with COMPATIBLE_API_BASE_URL.",
       action: "Setup",
       type: "docs",
       premium: false
@@ -971,6 +1059,24 @@ function renderIntegrations() {
       premium: false
     },
     {
+      name: "Donations",
+      status: donationConfig.enabled ? "Connected" : "Link needed",
+      detail: donationConfig.enabled
+        ? "Support button is ready for donations or UPI support links."
+        : "Add DONATION_URL or DONATION_UPI_ID while payment KYC is pending.",
+      action: "Open",
+      type: "donation",
+      premium: false
+    },
+    {
+      name: "Free Promotion Pack",
+      status: "Ready",
+      detail: "Copy launch posts for Reddit, Discord, school groups, and short-form video captions.",
+      action: "Copy",
+      type: "promo",
+      premium: false
+    },
+    {
       name: billingConfig.razorpayReady ? "Razorpay" : "Stripe",
       status: billingConfig.razorpayReady || billingConfig.ready ? "Checkout ready" : "Keys needed",
       detail: billingConfig.razorpayReady
@@ -995,7 +1101,7 @@ function renderIntegrations() {
 }
 
 function makeRoomCode() {
-  return `SD-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  return `ZD-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 function getCollabMembers() {
@@ -1055,8 +1161,8 @@ function createCollabRoom() {
   const members = getCollabMembers();
   const code = makeRoomCode();
   const mode = collabModeSelect.value;
-  const title = currentKit ? `${titleCase(currentKit.focus)} kit` : "SynapseDeck kit";
-  const inviteText = `Join my SynapseDeck room ${code} for ${title}. Goal: review cards, quiz each other, and fix weak spots.`;
+  const title = currentKit ? `${titleCase(currentKit.focus)} kit` : "ZentraDeck kit";
+  const inviteText = `Join my ZentraDeck room ${code} for ${title}. Goal: review cards, quiz each other, and fix weak spots.`;
   collabRoom = {
     code,
     mode,
@@ -1065,12 +1171,12 @@ function createCollabRoom() {
     inviteText,
     createdAt: new Date().toISOString()
   };
-  localStorage.setItem("synapseDeckCollabRoom", JSON.stringify(collabRoom));
+  localStorage.setItem("ZentraDeckCollabRoom", JSON.stringify(collabRoom));
   renderCollaboration();
 }
 
 async function copyCollabInvite() {
-  const text = collabRoom?.inviteText || "Create a SynapseDeck room first.";
+  const text = collabRoom?.inviteText || "Create a ZentraDeck room first.";
   try {
     await navigator.clipboard.writeText(text);
     copyInviteBtn.textContent = "Copied";
@@ -1078,7 +1184,7 @@ async function copyCollabInvite() {
       copyInviteBtn.textContent = "Copy Invite";
     }, 900);
   } catch {
-    downloadTextFile("synapsedeck-room-invite.txt", text);
+    downloadTextFile("ZentraDeck-room-invite.txt", text);
   }
 }
 
@@ -1093,7 +1199,7 @@ function exportGroupReport() {
     weakSpots: currentKit?.weakSpots || [],
     dueCards: getDueCards()
   };
-  downloadTextFile("synapsedeck-group-report.json", JSON.stringify(payload, null, 2), "application/json");
+  downloadTextFile("ZentraDeck-group-report.json", JSON.stringify(payload, null, 2), "application/json");
 }
 
 function createPeerChallenge() {
@@ -1105,14 +1211,14 @@ function createPeerChallenge() {
     return;
   }
   const challenge = [
-    `SynapseDeck Peer Challenge: ${collabRoom?.code || "Demo Room"}`,
+    `ZentraDeck Peer Challenge: ${collabRoom?.code || "Demo Room"}`,
     "",
     "Answer these without looking:",
     ...currentKit.quiz.slice(0, 5).map((item, index) => `${index + 1}. ${item.question}`),
     "",
     `Beat my readiness score: ${calculateReadiness()}%`
   ].join("\n");
-  downloadTextFile("synapsedeck-peer-challenge.txt", challenge);
+  downloadTextFile("ZentraDeck-peer-challenge.txt", challenge);
 }
 
 function applyBillingRedirectState() {
@@ -1391,6 +1497,39 @@ function makeQuiz(flashcards, difficulty, mode) {
       item.mode = mode;
       if (mode === "choice") {
         item.choices = pickChoices(card.term, flashcards);
+      }
+      if (mode === "truefalse" && !item.statement) {
+        item.statement = `${card.term}: ${truncate(stripTermPrefix(card.answer), 170)}`;
+        item.statementIsTrue = true;
+      }
+    }
+    return item;
+  });
+}
+
+function makeCustomQuiz() {
+  if (!currentKit?.flashcards?.length) {
+    return [];
+  }
+  const focusWords = normalizeAnswer(customQuizFocus.value).split(" ").filter((word) => word.length > 2);
+  const count = Number(customQuizCount.value || 6);
+  const mode = customQuizType.value || "mixed";
+  const ranked = [...currentKit.flashcards].sort((a, b) => {
+    const scoreCard = (card) => {
+      const haystack = normalizeAnswer(`${card.term} ${card.prompt} ${card.answer} ${card.clue}`);
+      const focusScore = focusWords.reduce((sum, word) => sum + (haystack.includes(word) ? 3 : 0), 0);
+      const weakScore = { missed: 4, hard: 3, shaky: 2, new: 1, known: 0, easy: -1 }[card.mastery] || 0;
+      return focusScore + weakScore;
+    };
+    return scoreCard(b) - scoreCard(a);
+  });
+  const selected = ranked.slice(0, Math.min(count, ranked.length));
+  return selected.map((card, index) => {
+    const item = makeQuizQuestion(card, index, currentKit.difficulty, currentKit.flashcards);
+    if (mode !== "mixed") {
+      item.mode = mode;
+      if (mode === "choice") {
+        item.choices = pickChoices(card.term, currentKit.flashcards);
       }
       if (mode === "truefalse" && !item.statement) {
         item.statement = `${card.term}: ${truncate(stripTermPrefix(card.answer), 170)}`;
@@ -2231,7 +2370,7 @@ async function saveKit() {
   }
 
   const payload = savedKitPayload();
-  localStorage.setItem("synapseDeckKit", JSON.stringify(payload));
+  localStorage.setItem("ZentraDeckKit", JSON.stringify(payload));
 
   try {
     const response = await fetch(`${apiBase()}/api/kits/latest`, {
@@ -2264,7 +2403,7 @@ async function loadRemoteKit() {
     }
     const payload = await response.json();
     if (payload.kit) {
-      localStorage.setItem("synapseDeckKit", JSON.stringify(payload.kit));
+      localStorage.setItem("ZentraDeckKit", JSON.stringify(payload.kit));
       applySavedKit(payload.kit);
     }
   } catch {
@@ -2278,13 +2417,13 @@ async function copyReferralLink() {
   url.search = "";
   url.hash = "";
   url.searchParams.set("ref", emailSlug || "student");
-  const text = `Try SynapseDeck AI for notes, flashcards, quizzes, and an AI tutor: ${url.toString()}`;
+  const text = `Try ZentraDeck AI for notes, flashcards, quizzes, and an AI tutor: ${url.toString()}`;
   try {
     await navigator.clipboard.writeText(text);
     referralStatus.textContent = "Invite link copied.";
     copyReferralBtn.textContent = "Copied";
   } catch {
-    downloadTextFile("synapsedeck-invite.txt", text);
+    downloadTextFile("ZentraDeck-invite.txt", text);
     referralStatus.textContent = "Invite file downloaded.";
   }
   window.setTimeout(() => {
@@ -2293,7 +2432,7 @@ async function copyReferralLink() {
 }
 
 function loadKit() {
-  const stored = localStorage.getItem("synapseDeckKit");
+  const stored = localStorage.getItem("ZentraDeckKit");
   if (!stored) {
     return;
   }
@@ -2302,7 +2441,7 @@ function loadKit() {
     const saved = JSON.parse(stored);
     applySavedKit(saved);
   } catch {
-    localStorage.removeItem("synapseDeckKit");
+    localStorage.removeItem("ZentraDeckKit");
   }
 }
 
@@ -2312,7 +2451,7 @@ function exportKit() {
   }
 
   const lines = [
-    "SynapseDeck AI Kit",
+    "ZentraDeck AI Kit",
     `Goal: ${currentKit.focus}`,
     `Difficulty: ${currentKit.difficulty}`,
     `Quiz mode: ${currentKit.quizMode}`,
@@ -2331,7 +2470,7 @@ function exportKit() {
     ...currentKit.plan.map((item, index) => `${index + 1}. ${item}`)
   ];
 
-  downloadTextFile("synapsedeck-kit.txt", lines.join("\n"));
+  downloadTextFile("ZentraDeck-kit.txt", lines.join("\n"));
 }
 
 function exportFlashcardsTsv() {
@@ -2344,7 +2483,7 @@ function exportFlashcardsTsv() {
     card.answer.replace(/\t|\n/g, " "),
     card.term.replace(/\t|\n/g, " ")
   ].join("\t"));
-  downloadTextFile("synapsedeck-flashcards.tsv", ["Question\tAnswer\tTerm", ...rows].join("\n"), "text/tab-separated-values");
+  downloadTextFile("ZentraDeck-flashcards.tsv", ["Question\tAnswer\tTerm", ...rows].join("\n"), "text/tab-separated-values");
 }
 
 async function copyIntegrationPayload() {
@@ -2356,7 +2495,7 @@ async function copyIntegrationPayload() {
       copyIntegrationPayloadBtn.textContent = "Copy Payload";
     }, 900);
   } catch {
-    downloadTextFile("synapsedeck-integration-payload.json", payload, "application/json");
+    downloadTextFile("ZentraDeck-integration-payload.json", payload, "application/json");
   }
 }
 
@@ -2370,7 +2509,7 @@ function handleIntegrationAction(action) {
       showUpgrade("Generate a study kit before exporting review events.");
       return;
     }
-    downloadTextFile("synapsedeck-review-calendar.ics", makeCalendarExport(), "text/calendar");
+    downloadTextFile("ZentraDeck-review-calendar.ics", makeCalendarExport(), "text/calendar");
     return;
   }
   if (action === "cards") {
@@ -2382,15 +2521,40 @@ function handleIntegrationAction(action) {
     return;
   }
   if (action === "pricing") {
-    showUpgrade("Stripe checkout is scaffolded. Add live Stripe keys and webhooks before charging users.");
+    showUpgrade("Add Razorpay or Stripe keys before charging users. Donations can work while KYC is pending.");
+    return;
+  }
+  if (action === "donation") {
+    openDonation();
+    return;
+  }
+  if (action === "promo") {
+    const promo = [
+      "Paste your notes. ZentraDeck AI turns them into flashcards, quizzes, games, and an AI tutor.",
+      "",
+      "Free places to post:",
+      "- Your class group chat: \"I made a free beta study tool. Paste notes and it creates quizzes/games. Try it and roast what breaks.\"",
+      "- Reddit/Discord: \"I built a notes-to-quiz study app and need beta testers. No payment needed.\"",
+      "- Shorts caption: \"I turned one page of notes into a quiz and flashcards in 10 seconds.\"",
+      "- School clubs: offer to make sample kits for one chapter."
+    ].join("\n");
+    navigator.clipboard?.writeText(promo).catch(() => downloadTextFile("ZentraDeck-promo-pack.txt", promo));
     return;
   }
   if (action === "docs") {
-    downloadTextFile("synapsedeck-cloud-ai-env.txt", [
+    downloadTextFile("ZentraDeck-cloud-ai-env.txt", [
       "MODEL_PROVIDER=compatible",
+      "# OpenRouter",
       "COMPATIBLE_API_BASE_URL=https://openrouter.ai/api/v1",
       "COMPATIBLE_API_KEY=sk-or-v1_...",
-      "COMPATIBLE_MODEL=openrouter/free"
+      "COMPATIBLE_MODEL=openrouter/free",
+      "",
+      "# Groq OpenAI-compatible alternative",
+      "COMPATIBLE_API_BASE_URL=https://api.groq.com/openai/v1",
+      "COMPATIBLE_API_KEY=gsk_...",
+      "COMPATIBLE_MODEL=llama-3.1-8b-instant",
+      "",
+      "# Hugging Face/OpenAI-compatible endpoints can use the same variables."
     ].join("\n"));
     return;
   }
@@ -2408,8 +2572,8 @@ function exportObsidianKit() {
   }
 
   const created = new Date(currentKit.createdAt);
-  const noteTitle = `SynapseDeck ${titleCase(currentKit.focus)} Kit`;
-  const tags = ["study", "synapsedeck", currentKit.focus, currentKit.difficulty]
+  const noteTitle = `ZentraDeck ${titleCase(currentKit.focus)} Kit`;
+  const tags = ["study", "ZentraDeck", currentKit.focus, currentKit.difficulty]
     .map((tag) => tag.replace(/[^a-z0-9-]/gi, "").toLowerCase());
   const termLinks = currentKit.terms.slice(0, 12).map(({ term }) => wikilinkTerm(term));
   const reviewDates = [1, 3, 7].map(formatDate);
@@ -2590,6 +2754,28 @@ quizList.addEventListener("click", (event) => {
   updateQuizScore();
 });
 
+customQuizBtn.addEventListener("click", () => {
+  if (!currentKit) {
+    showUpgrade("Generate a kit first, then build a custom quiz.");
+    return;
+  }
+  currentKit.quizMode = customQuizType.value;
+  currentKit.quiz = makeCustomQuiz();
+  quizScore.textContent = `0 / ${currentKit.quiz.length}`;
+  quizList.innerHTML = currentKit.quiz.map((item, index) => `
+    <article class="quiz-card">
+      <p>${index + 1}. ${escapeHtml(item.question)}</p>
+      ${renderQuizAnswer(item, index)}
+      <div class="feedback" data-feedback="${index}"></div>
+      <small class="quiz-rubric">${escapeHtml(item.rubric || "Check your answer against the source notes.")}</small>
+    </article>
+  `).join("");
+  customQuizBtn.textContent = "Quiz rebuilt";
+  window.setTimeout(() => {
+    customQuizBtn.textContent = "Build custom quiz";
+  }, 900);
+});
+
 document.querySelectorAll(".game-mode").forEach((button) => {
   button.addEventListener("click", () => {
     if (!currentKit) {
@@ -2665,9 +2851,6 @@ gameBoard.addEventListener("keydown", (event) => {
 
 assistantForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!requirePro("AI assistant")) {
-    return;
-  }
   if (!requireAccount("AI assistant")) {
     return;
   }
@@ -2677,9 +2860,6 @@ assistantForm.addEventListener("submit", (event) => {
 
 document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (!requirePro("AI assistant")) {
-      return;
-    }
     if (!requireAccount("AI assistant")) {
       return;
     }
@@ -2768,7 +2948,7 @@ exportGroupReportBtn.addEventListener("click", exportGroupReport);
 collabModeSelect.addEventListener("change", () => {
   if (collabRoom) {
     collabRoom.mode = collabModeSelect.value;
-    localStorage.setItem("synapseDeckCollabRoom", JSON.stringify(collabRoom));
+    localStorage.setItem("ZentraDeckCollabRoom", JSON.stringify(collabRoom));
   }
   renderCollaboration();
 });
@@ -2996,7 +3176,7 @@ async function runResearch() {
     }
   }
 
-  researchResults.innerHTML = `<article class="research-card"><p>Web research needs the SynapseDeck Node server. Run <strong>npm start</strong> and open the app from that server before checking related sources.</p></article>`;
+  researchResults.innerHTML = `<article class="research-card"><p>Web research needs the ZentraDeck Node server. Run <strong>npm start</strong> and open the app from that server before checking related sources.</p></article>`;
 }
 
 researchBtn.addEventListener("click", runResearch);
@@ -3039,6 +3219,18 @@ saveBtn.addEventListener("click", saveKit);
 exportBtn.addEventListener("click", exportKit);
 obsidianBtn.addEventListener("click", exportObsidianKit);
 copyReferralBtn.addEventListener("click", copyReferralLink);
+donateBtn.addEventListener("click", openDonation);
+tutorialBtn.addEventListener("click", () => showTutorial({ force: true }));
+closeTutorialBtn.addEventListener("click", () => hideTutorial());
+tutorialStartBtn.addEventListener("click", () => {
+  hideTutorial();
+  notesInput.focus();
+});
+tutorialSampleBtn.addEventListener("click", () => {
+  notesInput.value = sampleNotes;
+  hideTutorial();
+  buildKit();
+});
 loginBtn.addEventListener("click", () => submitAuth("login"));
 signupBtn.addEventListener("click", () => submitAuth("signup"));
 logoutBtn.addEventListener("click", logout);
@@ -3085,7 +3277,7 @@ upgradeModal.addEventListener("click", (event) => {
   }
 });
 clearBtn.addEventListener("click", () => {
-  localStorage.removeItem("synapseDeckKit");
+  localStorage.removeItem("ZentraDeckKit");
   notesInput.value = "";
   currentKit = null;
   resetStudySet();
@@ -3183,8 +3375,12 @@ async function boot() {
   await loadModelConfig();
   await loadBillingConfig();
   await loadAdsConfig();
+  await loadDonationConfig();
   await loadAccount();
-  showAuthGate();
+  showTutorial();
+  if (tutorialModal?.hidden) {
+    showAuthGate();
+  }
   renderCollaboration();
   renderTimer();
 }

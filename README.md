@@ -1,4 +1,4 @@
-# SynapseDeck AI
+# ZentraDeck AI
 
 Luxury AI study app with generated study kits, flashcards, quizzes, games, calculator, assistant chat, Obsidian export, accounts, saved kits, Razorpay, Stripe, and ad monetization.
 
@@ -34,11 +34,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...
-DATABASE_PATH=./data/synapsedeck-db.json
+DATABASE_PATH=./data/zentradeck-db.json
 ADS_ENABLED=true
 ADSENSE_CLIENT_ID=ca-pub-...
 ADSENSE_SIDEBAR_SLOT=...
 ADSENSE_WORKSPACE_SLOT=...
+DONATION_URL=https://...
+DONATION_UPI_ID=name@bank
 ```
 
 ## Ads
@@ -62,6 +64,21 @@ OPENAI_API_KEY=sk-proj_...
 OPENAI_MODEL=gpt-5-mini
 ```
 
+Other OpenAI-compatible API options:
+
+```bash
+# Groq
+COMPATIBLE_API_BASE_URL=https://api.groq.com/openai/v1
+COMPATIBLE_API_KEY=gsk_...
+COMPATIBLE_MODEL=llama-3.1-8b-instant
+
+# Hugging Face or other OpenAI-compatible gateways can use the same variables.
+```
+
+## Donations
+
+If Razorpay/Stripe KYC is not ready, set `DONATION_URL` or `DONATION_UPI_ID`. The app will show a support button without unlocking paid plans.
+
 ## Deploy
 
 Render Blueprint is included:
@@ -73,8 +90,8 @@ render.yaml
 Docker deploy is included:
 
 ```bash
-docker build -t synapsedeck-ai .
-docker run -p 4174:4174 --env-file .env synapsedeck-ai
+docker build -t zentradeck-ai .
+docker run -p 4174:4174 --env-file .env zentradeck-ai
 ```
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full launch checklist.
