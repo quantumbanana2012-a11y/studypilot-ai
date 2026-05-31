@@ -166,6 +166,7 @@
           <button class="tab" data-tab="quiz" type="button">Quiz</button>
           <button class="tab" data-tab="games" type="button">Games</button>
           <button class="tab" data-tab="assistant" type="button">Assistant</button>
+          <button class="tab" data-tab="ai-tools" type="button">AI Tools</button>
           <button class="tab" data-tab="references" type="button">Visuals</button>
           <button class="tab" data-tab="research" type="button">Web</button>
           <button class="tab" data-tab="calculator" type="button">Calc</button>
@@ -354,6 +355,45 @@
               <button type="button" data-assistant-prompt="Quiz me on the most important idea.">Quiz me</button>
               <button type="button" data-assistant-prompt="What should I study next?">Next step</button>
               <button type="button" data-assistant-prompt="Teach this like I am new to it.">Teach it</button>
+            </section>
+          </div>
+        </section>
+
+        <section id="ai-tools" class="tab-panel" aria-labelledby="ai-tools-tab">
+          <div class="tools-shell">
+            <section class="panel tools-hero">
+              <div>
+                <p class="eyebrow">Command library</p>
+                <h3>320 AI Actions</h3>
+                <p>Search, filter, and run page, highlight, library, YouTube, shopping, coding, writing, student, business, tab, dashboard, UX, privacy, and agent commands from one place.</p>
+              </div>
+              <div class="tools-stats">
+                <article>
+                  <span>Actions</span>
+                  <strong id="aiToolCount">320</strong>
+                </article>
+                <article>
+                  <span>Categories</span>
+                  <strong id="aiToolCategoryCount">16</strong>
+                </article>
+              </div>
+            </section>
+            <section class="panel tools-panel">
+              <div class="assistant-header">
+                <div>
+                  <p class="eyebrow">Find a command</p>
+                  <h3>AI Tool Launcher</h3>
+                </div>
+                <button id="aiToolCopyBtn" class="ghost-button" type="button">Copy List</button>
+              </div>
+              <div class="tool-controls">
+                <input id="aiToolSearch" type="search" autocomplete="off" placeholder="Search actions, like YouTube, pricing, flashcards, risks..." />
+                <select id="aiToolCategory">
+                  <option value="all">All categories</option>
+                </select>
+              </div>
+              <div id="aiToolCategoryRail" class="tool-category-rail"></div>
+              <div id="aiToolGrid" class="ai-tool-grid"></div>
             </section>
           </div>
         </section>

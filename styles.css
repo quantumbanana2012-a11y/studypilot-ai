@@ -557,6 +557,10 @@ select.is-limited {
   display: block;
 }
 
+.workspace:not(.has-kit) #ai-tools.tab-panel.is-active {
+  display: block;
+}
+
 .coach-grid,
 .content-grid,
 .plan-board,
@@ -567,6 +571,7 @@ select.is-limited {
 .reference-shell,
 .research-shell,
 .integrations-shell,
+.tools-shell,
 .collab-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
@@ -583,6 +588,7 @@ select.is-limited {
 .reference-shell .panel,
 .research-shell .panel,
 .integrations-shell .panel,
+.tools-shell .panel,
 .collab-shell .panel {
   padding: 18px;
 }
@@ -1590,6 +1596,131 @@ select.is-limited {
   gap: 12px;
 }
 
+.tools-shell {
+  grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
+}
+
+.tools-hero {
+  align-content: start;
+  gap: 18px;
+}
+
+.tools-hero p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.tools-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.tools-stats article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tools-stats span,
+.ai-tool-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.tools-stats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.45rem;
+}
+
+.tools-panel {
+  min-width: 0;
+}
+
+.tool-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.3fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.tool-controls input,
+.tool-controls select {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel-strong);
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.tool-category-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.tool-category-rail button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.tool-category-rail button.is-active {
+  border-color: rgba(232, 198, 124, 0.58);
+  color: var(--gold);
+  background: rgba(232, 198, 124, 0.14);
+}
+
+.ai-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  max-height: 620px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.ai-tool-card,
+.ai-tool-empty {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.ai-tool-card > span {
+  width: max-content;
+  border: 1px solid rgba(232, 198, 124, 0.28);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.ai-tool-card strong {
+  min-height: 44px;
+  line-height: 1.25;
+}
+
+.ai-tool-card div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .integration-card {
   display: grid;
   grid-template-rows: 1fr auto;
@@ -1762,6 +1893,7 @@ select.is-limited {
   .reference-shell,
   .research-shell,
   .integrations-shell,
+  .tools-shell,
   .collab-shell {
     grid-template-columns: 1fr;
   }

@@ -5,6 +5,30 @@ const crypto = require("node:crypto");
 
 const root = __dirname;
 const dataDir = path.join(root, "data");
+
+function loadDotenvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const content = fs.readFileSync(filePath, "utf8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    let value = rawValue.trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadDotenvFile(path.join(root, ".env"));
+
 const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "zentradeck-db.json");
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "0.0.0.0";
@@ -397,7 +421,12 @@ async function runGeminiAssistant(body, history) {
 
   const payload = await apiResponse.json().catch(() => ({}));
   if (!apiResponse.ok) {
-    throw new Error(payload.error?.message || "Gemini request failed.");
+    const message = payload.error?.message || "Gemini request failed.";
+    const error = new Error(message.includes("quota") || payload.error?.status === "RESOURCE_EXHAUSTED"
+      ? "Gemini quota is exhausted for this API key/project. Check Google AI Studio billing or use another model/key."
+      : message);
+    error.statusCode = apiResponse.status;
+    throw error;
   }
 
   const text = (payload.candidates?.[0]?.content?.parts || [])
@@ -752,7 +781,8 @@ const server = http.createServer(async (request, response) => {
 
     serveStatic(request, response);
   } catch (error) {
-    sendJson(response, 500, {
+    const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+    sendJson(response, statusCode, {
       error: error.message || "Server error.",
       model: activeModelName(),
       provider: modelProvider

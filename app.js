@@ -116,6 +116,13 @@ const timerDisplay = document.querySelector("#timerDisplay");
 const timerLabel = document.querySelector("#timerLabel");
 const timerStartBtn = document.querySelector("#timerStartBtn");
 const timerResetBtn = document.querySelector("#timerResetBtn");
+const aiToolSearch = document.querySelector("#aiToolSearch");
+const aiToolCategory = document.querySelector("#aiToolCategory");
+const aiToolCategoryRail = document.querySelector("#aiToolCategoryRail");
+const aiToolGrid = document.querySelector("#aiToolGrid");
+const aiToolCount = document.querySelector("#aiToolCount");
+const aiToolCategoryCount = document.querySelector("#aiToolCategoryCount");
+const aiToolCopyBtn = document.querySelector("#aiToolCopyBtn");
 
 const stopWords = new Set([
   "about", "after", "again", "also", "because", "between", "could", "during", "every",
@@ -133,6 +140,81 @@ const termEdgeStopWords = new Set([
 ]);
 
 const sampleNotes = `Photosynthesis is the process plants use to convert light energy into chemical energy. It happens mainly in chloroplasts, where chlorophyll captures sunlight. The light-dependent reactions split water, release oxygen, and produce ATP and NADPH. The Calvin cycle uses carbon dioxide, ATP, and NADPH to create glucose. Glucose stores energy that plants use for growth and cellular respiration. Factors such as light intensity, carbon dioxide concentration, and temperature affect the rate of photosynthesis. If light is limited, the light-dependent reactions slow down. If temperature is too high, enzymes in the Calvin cycle can become less effective.`;
+
+const aiToolSections = [
+  {
+    category: "Page",
+    tools: `Explain page in one sentence|Explain page in 5 bullet points|Extract action steps|Extract important names|Extract important dates|Extract tools mentioned|Extract websites mentioned|Extract prices mentioned|Extract warnings or risks|Extract definitions|Turn page into checklist|Turn page into mind map|Turn page into timeline|Turn page into FAQ|Turn page into table|Turn page into pros and cons|Turn page into beginner notes|Turn page into expert notes|Turn page into tweet thread|Turn page into blog outline`
+  },
+  {
+    category: "Highlights",
+    tools: `Save highlight with source|Add personal note to highlight|Explain highlighted word|Explain highlighted paragraph|Rewrite highlighted text|Shorten highlighted text|Expand highlighted text|Translate highlighted text|Turn highlight into flashcard|Turn highlight into quiz question|Find similar saved highlights|Group highlights by topic|Highlight confusing parts|Highlight important claims|Highlight numbers/statistics|Highlight instructions|Highlight code snippets|Highlight quotes|Highlight product specs|Highlight deadlines`
+  },
+  {
+    category: "Library",
+    tools: `Save page as card|Save page as note|Save page as bookmark|Save page as research source|Save page as task|Save page to multiple folders|Pin important saved pages|Archive old saved pages|Favorite saved pages|Add custom tags|Auto-create folders|Merge duplicate saves|Detect duplicate pages|Show recently saved|Show most used sources|Show unread saved pages|Show pages saved but not summarized|Show pages with tasks|Show pages with deadlines|Search by website`
+  },
+  {
+    category: "AI Search",
+    tools: `Search saved pages by meaning|Search saved pages by question|Search saved highlights|Search saved YouTube notes|Search saved product pages|Search saved PDFs|Search old summaries|Search by date saved|Search by topic|Search by I vaguely remember|Find pages similar to this one|Find opposite opinions|Find saved pages that mention a tool|Find saved pages that mention a person|Find saved pages with prices|Find saved pages with code|Find saved pages with instructions|Find forgotten useful pages|Find pages related to current tab|Find unfinished research`
+  },
+  {
+    category: "YouTube",
+    tools: `Summarize YouTube transcript|Generate timestamps|Extract sponsor mentions|Extract tools/products mentioned|Extract steps from tutorial|Turn video into study notes|Turn video into checklist|Turn video into short script|Turn video into blog post|Ask questions about the video|Save video notes|Compare two videos|Summarize playlist|Find repeated ideas across videos|Detect if video is mostly fluff|Skip-to-important-parts suggestion|Generate video flashcards|Generate video quiz|Extract creator's advice|Create watch later summary`
+  },
+  {
+    category: "Shopping",
+    tools: `Summarize product page|Extract specs|Explain specs simply|Compare with saved products|Price drop tracker|Warranty summary|Return policy summary|Shipping cost checker|Fake review warning|Common complaint summary|Common praise summary|Alternative product suggestions|Budget match score|Value-for-money score|Should I buy card|Save to wishlist|Compare wishlist items|Detect missing product info|Ask what matters to me|Gift recommendation mode`
+  },
+  {
+    category: "Coding",
+    tools: `Explain GitHub repo|Explain README|Find install steps|Find required dependencies|Explain package.json|Explain error messages|Explain Stack Overflow answers|Summarize documentation|Generate starter code|Find API examples|Explain code block|Rewrite code comments|Generate debugging checklist|Warn about outdated answers|Save coding solution|Create project notes|Create setup guide|Create issue summary|Explain pull request|Explain changelog`
+  },
+  {
+    category: "Writing",
+    tools: `Rewrite email|Make text more professional|Make text friendlier|Make text shorter|Make text clearer|Fix grammar|Change tone|Draft reply|Summarize long email|Extract email tasks|Create follow-up email|Create apology email|Create cold email|Create LinkedIn message|Create Reddit reply|Create support response|Turn notes into paragraph|Turn paragraph into bullets|Turn bullets into essay outline|Generate title ideas`
+  },
+  {
+    category: "Student",
+    tools: `Turn article into notes|Turn page into flashcards|Generate practice quiz|Explain like a teacher|Create revision sheet|Create key terms list|Create assignment checklist|Break homework into steps|Estimate reading difficulty|Estimate time needed|Create study plan|Find confusing terms|Explain formula|Make example questions|Create summary for exam|Create mnemonic|Compare two sources|Generate citation|Save source for bibliography|Detect missing research gaps`
+  },
+  {
+    category: "Business",
+    tools: `Analyze competitor website|Extract pricing from competitor|Extract features from competitor|Find competitor weaknesses|Generate startup ideas from page|Generate customer pain points|Generate landing page copy|Critique landing page|Generate pricing ideas|Create product positioning|Create customer persona|Create launch checklist|Create cold outreach email|Create sales script|Create pitch deck outline|Create business plan summary|Create MVP feature list|Create market research summary|Create SWOT analysis|Create how to monetize this ideas`
+  },
+  {
+    category: "Tabs",
+    tools: `Summarize all tabs|Group tabs by topic|Close duplicate tabs|Save tab session|Restore tab session|Turn tabs into research board|Ask questions across tabs|Find most important tab|Detect forgotten tabs|Name tab groups automatically|Save all tabs to folder|Generate summary of open tabs|Warn about too many tabs|Clean tabs with confirmation|Find tabs related to current page|Open saved research session|Auto-group work tabs|Auto-group shopping tabs|Auto-group school tabs|Auto-group coding tabs`
+  },
+  {
+    category: "Dashboard",
+    tools: `Home dashboard|Recent saves|Pinned collections|Search bar|AI chat with library|Saved highlights page|Saved videos page|Saved products page|Saved PDFs page|Tasks page|Calendar-style saved history|Topic graph|Reading stats|Weekly digest|Export center|Prompt templates page|Account settings|Billing page|Privacy center|Usage dashboard`
+  },
+  {
+    category: "UX",
+    tools: `Dark mode|Light mode|System theme|Keyboard shortcuts|Command menu|Floating AI button|Right-click menu|Copy button everywhere|Copied toast|Loading skeletons|Friendly error messages|Retry button|Undo delete|Drag-and-drop folders|Resizable sidebar|Minimized mode|Compact mode|Beginner mode|Power-user mode|Onboarding tutorial`
+  },
+  {
+    category: "Advanced",
+    tools: `Unlimited summaries|Unlimited saves|Ask across library|Advanced AI models|PDF summaries|YouTube summaries|Semantic search|Custom prompt buttons|Export to Markdown|Export to PDF|Export to Notion|Export to Obsidian|Long document support|Priority speed|Price tracking|Research reports|Team workspaces|Shared collections|Advanced agents|API access`
+  },
+  {
+    category: "Privacy",
+    tools: `Ask before reading page|Show what content is sent to AI|Local-only saves|Delete saved page|Delete all data|Export all data|Disable on certain websites|Incognito mode support|Privacy mode|Source links on every answer|AI confidence label|This may be wrong warning|No auto-submit forms|Confirm before closing tabs|Confirm before saving sensitive pages|Data retention setting|Clear chat history|Hide floating button on selected sites|Open-source privacy page|Simple privacy explanation`
+  },
+  {
+    category: "Agents",
+    tools: `Research agent|Shopping agent|Job search agent|Freelance proposal agent|Study agent|Writing agent|Coding helper agent|Competitor research agent|Launch planner agent|Weekly report agent|Tab cleanup agent|Bookmark organizer agent|Content idea agent|Product comparison agent|Resume tailoring agent|Email follow-up agent|Course comparison agent|Travel research agent|Lead research agent|Newsletter summary`
+  }
+];
+
+const aiTools = aiToolSections.flatMap((section, sectionIndex) =>
+  section.tools.split("|").map((label, index) => ({
+    id: sectionIndex * 20 + index + 1,
+    category: section.category,
+    label
+  }))
+);
 
 let currentKit = null;
 let authToken = localStorage.getItem("ZentraDeckAuthToken") || "";
@@ -520,12 +602,20 @@ function authHeaders(extra = {}) {
 
 function renderAccount() {
   const signedIn = Boolean(currentUser);
-  accountBadge.textContent = signedIn ? currentUser.email : "Guest mode";
-  accountStatus.textContent = signedIn
-    ? `${currentUser.email} - free account`
-    : "Create a free account to save kits and progress.";
-  authFields.hidden = signedIn;
-  logoutBtn.hidden = !signedIn;
+  if (accountBadge) {
+    accountBadge.textContent = signedIn ? currentUser.email : "Guest mode";
+  }
+  if (accountStatus) {
+    accountStatus.textContent = signedIn
+      ? `${currentUser.email} - free account`
+      : "Create a free account to save kits and progress.";
+  }
+  if (authFields) {
+    authFields.hidden = signedIn;
+  }
+  if (logoutBtn) {
+    logoutBtn.hidden = !signedIn;
+  }
 }
 
 function showAuthGate() {
@@ -771,6 +861,82 @@ function renderIntegrations() {
       <button type="button" data-integration-action="${escapeHtml(item.type)}">${escapeHtml(item.action)}</button>
     </article>
   `).join("");
+}
+
+function aiToolPrompt(tool) {
+  const source = currentKit
+    ? `Use the active study kit titled ${titleCase(currentKit.focus)}.`
+    : "Use the source material currently pasted or uploaded in the app.";
+  return [
+    `Run this ZentraDeck AI action: ${tool.label}.`,
+    `Category: ${tool.category}.`,
+    source,
+    "Return a practical, student-friendly result. If the action asks for extraction, only include items supported by the source. If the action is a product, coding, business, tab, dashboard, UX, privacy, or agent feature, turn it into a useful output or implementation plan based on the available material.",
+    "Keep the answer structured and easy to copy."
+  ].join(" ");
+}
+
+function filteredAiTools() {
+  const query = (aiToolSearch?.value || "").trim().toLowerCase();
+  const category = aiToolCategory?.value || "all";
+  return aiTools.filter((tool) => {
+    const categoryMatch = category === "all" || tool.category === category;
+    const queryMatch = !query
+      || tool.label.toLowerCase().includes(query)
+      || tool.category.toLowerCase().includes(query);
+    return categoryMatch && queryMatch;
+  });
+}
+
+function renderAiTools() {
+  if (!aiToolGrid) {
+    return;
+  }
+
+  aiToolCount.textContent = String(aiTools.length);
+  aiToolCategoryCount.textContent = String(aiToolSections.length);
+
+  if (aiToolCategory.options.length <= 1) {
+    aiToolSections.forEach((section) => {
+      const option = document.createElement("option");
+      option.value = section.category;
+      option.textContent = section.category;
+      aiToolCategory.appendChild(option);
+    });
+  }
+
+  aiToolCategoryRail.innerHTML = [
+    `<button class="${aiToolCategory.value === "all" ? "is-active" : ""}" data-ai-tool-category="all" type="button">All</button>`,
+    ...aiToolSections.map((section) => `
+      <button class="${aiToolCategory.value === section.category ? "is-active" : ""}" data-ai-tool-category="${escapeHtml(section.category)}" type="button">
+        ${escapeHtml(section.category)}
+      </button>
+    `)
+  ].join("");
+
+  const tools = filteredAiTools();
+  aiToolGrid.innerHTML = tools.length
+    ? tools.map((tool) => `
+      <article class="ai-tool-card">
+        <span>${tool.id}</span>
+        <strong>${escapeHtml(tool.label)}</strong>
+        <small>${escapeHtml(tool.category)}</small>
+        <div>
+          <button class="ghost-button" data-ai-tool-copy="${tool.id}" type="button">Copy</button>
+          <button class="primary-button" data-ai-tool-run="${tool.id}" type="button">Run</button>
+        </div>
+      </article>
+    `).join("")
+    : `<article class="ai-tool-empty">No tools match that search.</article>`;
+}
+
+function copyAiToolList() {
+  const text = aiToolSections.map((section) => {
+    const rows = section.tools.split("|").map((label) => `- ${label}`).join("\n");
+    return `${section.category}\n${rows}`;
+  }).join("\n\n");
+  navigator.clipboard?.writeText(text);
+  showNotice("Copied the full AI tools list.");
 }
 
 function makeRoomCode() {
@@ -2542,6 +2708,40 @@ document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
   });
 });
 
+aiToolSearch?.addEventListener("input", renderAiTools);
+aiToolCategory?.addEventListener("change", renderAiTools);
+aiToolCategoryRail?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-ai-tool-category]");
+  if (!button) {
+    return;
+  }
+  aiToolCategory.value = button.dataset.aiToolCategory;
+  renderAiTools();
+});
+aiToolGrid?.addEventListener("click", (event) => {
+  const runButton = event.target.closest("button[data-ai-tool-run]");
+  const copyButton = event.target.closest("button[data-ai-tool-copy]");
+  const toolId = Number(runButton?.dataset.aiToolRun || copyButton?.dataset.aiToolCopy || 0);
+  const tool = aiTools.find((item) => item.id === toolId);
+  if (!tool) {
+    return;
+  }
+  const prompt = aiToolPrompt(tool);
+  if (copyButton) {
+    navigator.clipboard?.writeText(prompt);
+    showNotice("Copied AI tool prompt.");
+    return;
+  }
+  if (!requireAccount("AI tools")) {
+    assistantInput.value = prompt;
+    document.querySelector('[data-tab="assistant"]')?.click();
+    return;
+  }
+  document.querySelector('[data-tab="assistant"]')?.click();
+  askAssistant(prompt);
+});
+aiToolCopyBtn?.addEventListener("click", copyAiToolList);
+
 chooseFileBtn.addEventListener("click", () => {
   if (!requireAccount("File uploads")) {
     return;
@@ -3021,12 +3221,9 @@ timerResetBtn.addEventListener("click", resetTimer);
 async function boot() {
   loadKit();
   applyPlanState();
-  applyBillingRedirectState();
   await loadModelConfig();
-  await loadBillingConfig();
-  await loadAdsConfig();
-  await loadDonationConfig();
   await loadAccount();
+  renderAiTools();
   showTutorial();
   if (tutorialModal?.hidden) {
     showAuthGate();
