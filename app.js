@@ -15,23 +15,14 @@ const saveBtn = document.querySelector("#saveBtn");
 const exportBtn = document.querySelector("#exportBtn");
 const obsidianBtn = document.querySelector("#obsidianBtn");
 const clearBtn = document.querySelector("#clearBtn");
-const upgradeBtn = document.querySelector("#upgradeBtn");
-const upgradeModal = document.querySelector("#upgradeModal");
-const closeUpgradeBtn = document.querySelector("#closeUpgradeBtn");
-const planBadge = document.querySelector("#planBadge");
-const planStrip = document.querySelector("#planStrip");
 const copyReferralBtn = document.querySelector("#copyReferralBtn");
 const referralStatus = document.querySelector("#referralStatus");
-const donateBtn = document.querySelector("#donateBtn");
-const donationStatus = document.querySelector("#donationStatus");
 const tutorialBtn = document.querySelector("#tutorialBtn");
 const tutorialModal = document.querySelector("#tutorialModal");
 const closeTutorialBtn = document.querySelector("#closeTutorialBtn");
 const tutorialSampleBtn = document.querySelector("#tutorialSampleBtn");
 const tutorialStartBtn = document.querySelector("#tutorialStartBtn");
 const accountBadge = document.querySelector("#accountBadge");
-const sidebarAd = document.querySelector("#sidebarAd");
-const workspaceAd = document.querySelector("#workspaceAd");
 const accountStatus = document.querySelector("#accountStatus");
 const authFields = document.querySelector("#authFields");
 const authEmail = document.querySelector("#authEmail");
@@ -47,7 +38,6 @@ const gateLoginBtn = document.querySelector("#gateLoginBtn");
 const gateSignupBtn = document.querySelector("#gateSignupBtn");
 const authGateCloseBtn = document.querySelector("#authGateCloseBtn");
 const authGateGuestBtn = document.querySelector("#authGateGuestBtn");
-const upgradeNote = document.querySelector("#upgradeNote");
 const resetMasteryBtn = document.querySelector("#resetMasteryBtn");
 const emptyState = document.querySelector("#emptyState");
 const kitTitle = document.querySelector("#kitTitle");
@@ -145,7 +135,6 @@ const termEdgeStopWords = new Set([
 const sampleNotes = `Photosynthesis is the process plants use to convert light energy into chemical energy. It happens mainly in chloroplasts, where chlorophyll captures sunlight. The light-dependent reactions split water, release oxygen, and produce ATP and NADPH. The Calvin cycle uses carbon dioxide, ATP, and NADPH to create glucose. Glucose stores energy that plants use for growth and cellular respiration. Factors such as light intensity, carbon dioxide concentration, and temperature affect the rate of photosynthesis. If light is limited, the light-dependent reactions slow down. If temperature is too high, enzymes in the Calvin cycle can become less effective.`;
 
 let currentKit = null;
-let currentPlan = localStorage.getItem("ZentraDeckPlan") || "free";
 let authToken = localStorage.getItem("ZentraDeckAuthToken") || "";
 let currentUser = null;
 let assistantHistory = [];
@@ -156,23 +145,12 @@ let modelConfig = {
   provider: "compatible",
   apiBase: ""
 };
-let billingConfig = {
-  ready: false,
-  razorpayReady: false,
-  apiBase: ""
-};
 let adsConfig = {
   enabled: false,
   clientId: "",
   sidebarSlot: "",
   workspaceSlot: "",
   apiBase: ""
-};
-let donationConfig = {
-  enabled: false,
-  url: "",
-  upiId: "",
-  label: "Support ZentraDeck"
 };
 let visualStyle = "diagram";
 let calcEntries = [];
@@ -190,7 +168,8 @@ let gameState = {
   selected: null,
   matched: [],
   sprintIndex: 0,
-  typeIndex: 0
+  typeIndex: 0,
+  boardIndex: 0
 };
 let studySetState = {
   index: 0,
@@ -474,19 +453,6 @@ function removeImportedFile(index) {
   renderFileList();
 }
 
-function hasProAccess() {
-  return currentPlan === "pro" || currentPlan === "school";
-}
-
-function planName() {
-  return currentPlan === "school" ? "School" : currentPlan === "pro" ? "Pro" : "Starter";
-}
-
-function showUpgrade(reason = "Upgrade to unlock this study feature.") {
-  upgradeNote.textContent = reason;
-  upgradeModal.hidden = false;
-}
-
 function requireAccount(featureName) {
   if (currentUser) {
     return true;
@@ -499,16 +465,10 @@ function requireAccount(featureName) {
   return false;
 }
 
-function requirePro(featureName) {
-  if (hasProAccess()) {
-    return true;
+function showNotice(message) {
+  if (referralStatus) {
+    referralStatus.textContent = message;
   }
-  showUpgrade(`${featureName} is included in Pro.`);
-  return false;
-}
-
-function hideUpgrade() {
-  upgradeModal.hidden = true;
 }
 
 function showTutorial({ force = false } = {}) {
@@ -549,7 +509,7 @@ function triggerWorkspaceMotion() {
 }
 
 function apiBase() {
-  return modelConfig.apiBase || billingConfig.apiBase || "";
+  return modelConfig.apiBase || "";
 }
 
 function authHeaders(extra = {}) {
@@ -562,8 +522,8 @@ function renderAccount() {
   const signedIn = Boolean(currentUser);
   accountBadge.textContent = signedIn ? currentUser.email : "Guest mode";
   accountStatus.textContent = signedIn
-    ? `${currentUser.email} - ${planName()} account`
-    : "Create an account to save kits and unlock paid plans.";
+    ? `${currentUser.email} - free account`
+    : "Create a free account to save kits and progress.";
   authFields.hidden = signedIn;
   logoutBtn.hidden = !signedIn;
 }
@@ -602,8 +562,6 @@ async function loadAccount() {
     }
     const payload = await response.json();
     currentUser = payload.user;
-    currentPlan = currentUser.plan || "free";
-    localStorage.setItem("ZentraDeckPlan", currentPlan);
     applyPlanState();
     await loadRemoteKit();
   } catch {
@@ -637,9 +595,7 @@ async function submitAuthCredentials(mode, email, password) {
     }
     authToken = payload.token;
     currentUser = payload.user;
-    currentPlan = currentUser.plan || "free";
     localStorage.setItem("ZentraDeckAuthToken", authToken);
-    localStorage.setItem("ZentraDeckPlan", currentPlan);
     authPassword.value = "";
     if (gateAuthPassword) {
       gateAuthPassword.value = "";
@@ -669,275 +625,12 @@ async function logout() {
   }
   authToken = "";
   currentUser = null;
-  currentPlan = "free";
   localStorage.removeItem("ZentraDeckAuthToken");
-  localStorage.setItem("ZentraDeckPlan", currentPlan);
   applyPlanState();
-}
-
-async function loadBillingConfig() {
-  const endpoints = ["/api/billing/config", "http://127.0.0.1:4174/api/billing/config", "http://127.0.0.1:4175/api/billing/config"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        continue;
-      }
-      billingConfig = await response.json();
-      billingConfig.apiBase = endpoint.replace("/api/billing/config", "");
-      renderIntegrations();
-      return;
-    } catch {
-      // Try the next endpoint.
-    }
-  }
-  billingConfig = { ready: false, razorpayReady: false, apiBase: "" };
-  renderIntegrations();
-}
-
-function loadRazorpayScript() {
-  if (window.Razorpay) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("Razorpay checkout could not load."));
-    document.head.appendChild(script);
-  });
-}
-
-function loadAdSenseScript() {
-  if (!adsConfig.enabled || !adsConfig.clientId || document.querySelector("#adsenseScript")) {
-    return;
-  }
-  const script = document.createElement("script");
-  script.id = "adsenseScript";
-  script.async = true;
-  script.crossOrigin = "anonymous";
-  script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(adsConfig.clientId)}`;
-  document.head.appendChild(script);
-}
-
-function adMarkup(slot, format = "auto") {
-  if (!adsConfig.enabled || !adsConfig.clientId || !slot) {
-    return "";
-  }
-  return `
-    <ins class="adsbygoogle"
-      style="display:block"
-      data-ad-client="${escapeHtml(adsConfig.clientId)}"
-      data-ad-slot="${escapeHtml(slot)}"
-      data-ad-format="${escapeHtml(format)}"
-      data-full-width-responsive="true"></ins>
-  `;
-}
-
-function pushAds() {
-  if (!adsConfig.enabled || !hasFreeAds()) {
-    return;
-  }
-  window.adsbygoogle = window.adsbygoogle || [];
-  document.querySelectorAll(".adsbygoogle").forEach(() => {
-    try {
-      window.adsbygoogle.push({});
-    } catch {
-      // Ad blockers and unapproved domains can block ad rendering during beta.
-    }
-  });
-}
-
-function hasFreeAds() {
-  return currentPlan === "free";
-}
-
-function renderAds() {
-  const showAds = hasFreeAds();
-  [sidebarAd, workspaceAd].forEach((slot) => {
-    if (slot) {
-      slot.hidden = !showAds;
-    }
-  });
-
-  if (!showAds) {
-    return;
-  }
-
-  if (adsConfig.enabled && adsConfig.clientId) {
-    sidebarAd.innerHTML = adMarkup(adsConfig.sidebarSlot, "auto") || `<span>Sponsored</span><strong>AdSense connected</strong><p>Add an ad slot ID to show this placement.</p>`;
-    workspaceAd.innerHTML = adMarkup(adsConfig.workspaceSlot, "horizontal") || `<span>Sponsored</span><p>Add a workspace banner slot ID to show ads here.</p>`;
-    loadAdSenseScript();
-    window.setTimeout(pushAds, 500);
-  } else {
-    sidebarAd.innerHTML = `<span>Sponsored</span><strong>Ad slot ready</strong><p>Set ADSENSE_CLIENT_ID after Google approves the site.</p>`;
-    workspaceAd.innerHTML = `<span>Sponsored</span><p>Starter users will see a banner here after AdSense approval.</p>`;
-  }
-}
-
-async function loadAdsConfig() {
-  const endpoints = ["/api/ads/config", "http://127.0.0.1:4174/api/ads/config", "http://127.0.0.1:4175/api/ads/config"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        continue;
-      }
-      adsConfig = await response.json();
-      adsConfig.apiBase = endpoint.replace("/api/ads/config", "");
-      renderAds();
-      return;
-    } catch {
-      // Try the next endpoint.
-    }
-  }
-  adsConfig = { enabled: false, clientId: "", sidebarSlot: "", workspaceSlot: "", apiBase: "" };
-  renderAds();
-}
-
-function renderDonation() {
-  if (!donateBtn || !donationStatus) {
-    return;
-  }
-  donateBtn.textContent = donationConfig.label || "Donate / Support";
-  donationStatus.textContent = donationConfig.enabled
-    ? "Donations are connected."
-    : "Add DONATION_URL or DONATION_UPI_ID in Render.";
-}
-
-async function loadDonationConfig() {
-  const endpoints = ["/api/donations/config", "http://127.0.0.1:4174/api/donations/config", "http://127.0.0.1:4175/api/donations/config"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        continue;
-      }
-      donationConfig = await response.json();
-      renderDonation();
-      return;
-    } catch {
-      // Try the next endpoint.
-    }
-  }
-  donationConfig = { enabled: false, url: "", upiId: "", label: "Support ZentraDeck" };
-  renderDonation();
-}
-
-async function openDonation() {
-  if (donationConfig.url) {
-    window.open(donationConfig.url, "_blank", "noreferrer");
-    return;
-  }
-  if (donationConfig.upiId) {
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(donationConfig.upiId)}&pn=${encodeURIComponent("ZentraDeck AI")}&tn=${encodeURIComponent("Support ZentraDeck AI")}`;
-    window.location.href = upiUrl;
-    return;
-  }
-  const text = "Support ZentraDeck AI: add DONATION_URL or DONATION_UPI_ID in Render.";
-  try {
-    await navigator.clipboard.writeText(text);
-    donationStatus.textContent = "Donation setup note copied.";
-  } catch {
-    donationStatus.textContent = "Add a donation link in Render first.";
-  }
-}
-
-async function startCheckout(plan) {
-  if (!billingConfig.ready && !billingConfig.razorpayReady) {
-    upgradeNote.textContent = "Payments are not configured yet. Add Razorpay or Stripe keys before selling paid plans.";
-    return;
-  }
-
-  if (!requireAccount("Upgrading")) {
-    upgradeNote.textContent = "Create an account first so payment can attach to your ZentraDeck plan.";
-    return;
-  }
-
-  if (billingConfig.razorpayReady) {
-    try {
-      await loadRazorpayScript();
-      const response = await fetch(`${billingConfig.apiBase}/api/billing/razorpay/order`, {
-        method: "POST",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ plan })
-      });
-      const order = await response.json();
-      if (!response.ok) {
-        throw new Error(order.error || "Razorpay order failed.");
-      }
-
-      const checkout = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: order.name,
-        description: order.description,
-        order_id: order.orderId,
-        prefill: order.prefill,
-        theme: { color: "#d7b35f" },
-        handler: async (payment) => {
-          const verifyResponse = await fetch(`${billingConfig.apiBase}/api/billing/razorpay/verify`, {
-            method: "POST",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ ...payment, plan })
-          });
-          const payload = await verifyResponse.json();
-          if (!verifyResponse.ok) {
-            upgradeNote.textContent = payload.error || "Payment verification failed.";
-            return;
-          }
-          currentUser = payload.user;
-          currentPlan = payload.user.plan || plan;
-          localStorage.setItem("ZentraDeckPlan", currentPlan);
-          applyPlanState();
-          hideUpgrade();
-        }
-      });
-      checkout.open();
-      return;
-    } catch (error) {
-      upgradeNote.textContent = error.message;
-      return;
-    }
-  }
-
-  const response = await fetch(`${billingConfig.apiBase}/api/billing/checkout`, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ plan })
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    upgradeNote.textContent = payload.error || "Checkout failed. Check payment environment variables.";
-    return;
-  }
-  window.location.href = payload.url;
-}
-
-function setPlan(plan) {
-  currentPlan = plan;
-  if (currentUser) {
-    currentUser.plan = plan;
-  }
-  localStorage.setItem("ZentraDeckPlan", plan);
-  applyPlanState();
-  hideUpgrade();
 }
 
 function applyPlanState() {
-  const isPro = hasProAccess();
-  planBadge.textContent = planName();
-  planStrip.textContent = planName();
-  obsidianBtn.classList.toggle("is-locked", !isPro);
-  cardCountSelect.classList.toggle("is-limited", !isPro && Number(cardCountSelect.value) > 8);
-  difficultySelect.classList.toggle("is-limited", !isPro && difficultySelect.value === "challenge");
-  document.querySelectorAll(".game-mode").forEach((button) => {
-    const isPremiumGame = button.dataset.gameMode === "sprint" || button.dataset.gameMode === "type";
-    button.classList.toggle("is-locked", !isPro && isPremiumGame);
-  });
   renderAccount();
-  renderAds();
   renderIntegrations();
 }
 
@@ -945,7 +638,7 @@ function integrationPayload() {
   return {
     app: "ZentraDeck AI",
     generatedAt: new Date().toISOString(),
-    plan: currentPlan,
+    plan: "free",
     model: {
       provider: modelConfig.provider,
       name: modelConfig.model,
@@ -996,7 +689,7 @@ function renderIntegrations() {
   }
 
   integrationAiStatus.textContent = modelConfig.ready ? modelConfig.model : "Needs key";
-  integrationBillingStatus.textContent = billingConfig.razorpayReady ? "Razorpay ready" : billingConfig.ready ? "Stripe ready" : "Payments pending";
+  integrationBillingStatus.textContent = "Free";
 
   const hasKit = Boolean(currentKit);
   const integrations = [
@@ -1012,11 +705,11 @@ function renderIntegrations() {
     },
     {
       name: "Obsidian",
-      status: hasProAccess() ? "Export ready" : "Pro export",
+      status: "Export ready",
       detail: "Export a Markdown study kit with summary, cards, quiz, and source notes.",
       action: "Export",
       type: "obsidian",
-      premium: true
+      premium: false
     },
     {
       name: "Google Calendar",
@@ -1040,15 +733,15 @@ function renderIntegrations() {
       detail: "Import Docs and PDFs after accounts and Google login are added.",
       action: "Roadmap",
       type: "roadmap",
-      premium: true
+      premium: false
     },
     {
       name: "Canvas / Classroom",
-      status: "School plan",
+      status: "Roadmap",
       detail: "Pull assignment materials and push practice tasks for classes.",
       action: "Roadmap",
       type: "roadmap",
-      premium: true
+      premium: false
     },
     {
       name: "Quizlet / Anki",
@@ -1059,31 +752,11 @@ function renderIntegrations() {
       premium: false
     },
     {
-      name: "Donations",
-      status: donationConfig.enabled ? "Connected" : "Link needed",
-      detail: donationConfig.enabled
-        ? "Support button is ready for donations or UPI support links."
-        : "Add DONATION_URL or DONATION_UPI_ID while payment KYC is pending.",
-      action: "Open",
-      type: "donation",
-      premium: false
-    },
-    {
       name: "Free Promotion Pack",
       status: "Ready",
       detail: "Copy launch posts for Reddit, Discord, school groups, and short-form video captions.",
       action: "Copy",
       type: "promo",
-      premium: false
-    },
-    {
-      name: billingConfig.razorpayReady ? "Razorpay" : "Stripe",
-      status: billingConfig.razorpayReady || billingConfig.ready ? "Checkout ready" : "Keys needed",
-      detail: billingConfig.razorpayReady
-        ? "Razorpay Checkout is active for India-friendly payments."
-        : "Stripe checkout is scaffolded; add payment keys before charging users.",
-      action: "Pricing",
-      type: "pricing",
       premium: false
     }
   ];
@@ -1091,7 +764,7 @@ function renderIntegrations() {
   integrationGrid.innerHTML = integrations.map((item) => `
     <article class="integration-card">
       <div>
-        <span>${escapeHtml(item.status)}${item.premium ? " / Pro" : ""}</span>
+        <span>${escapeHtml(item.status)}</span>
         <strong>${escapeHtml(item.name)}</strong>
         <p>${escapeHtml(item.detail)}</p>
       </div>
@@ -1207,7 +880,7 @@ function createPeerChallenge() {
     return;
   }
   if (!currentKit) {
-    showUpgrade("Generate a kit before creating a peer challenge.");
+    showNotice("Generate a kit before creating a peer challenge.");
     return;
   }
   const challenge = [
@@ -1221,33 +894,7 @@ function createPeerChallenge() {
   downloadTextFile("ZentraDeck-peer-challenge.txt", challenge);
 }
 
-function applyBillingRedirectState() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("billing") !== "success") {
-    return;
-  }
-  upgradeNote.textContent = "Payment completed. Refreshing account plan from the server...";
-  upgradeModal.hidden = false;
-  window.history.replaceState({}, "", window.location.pathname);
-}
-
 function enforcePlanLimits() {
-  if (hasProAccess()) {
-    return true;
-  }
-
-  if (Number(cardCountSelect.value) > 8) {
-    cardCountSelect.value = "8";
-    showUpgrade("Pro unlocks 12-card and 16-card kits for deeper study sessions.");
-    return false;
-  }
-
-  if (difficultySelect.value === "challenge") {
-    difficultySelect.value = "balanced";
-    showUpgrade("Challenge mode is a Pro study setting for harder questions and tougher recall.");
-    return false;
-  }
-
   return true;
 }
 
@@ -1658,7 +1305,8 @@ function resetGames() {
     selected: null,
     matched: [],
     sprintIndex: 0,
-    typeIndex: 0
+    typeIndex: 0,
+    boardIndex: 0
   };
 }
 
@@ -2041,6 +1689,7 @@ function renderGames() {
     { label: "Match", detail: "Pair terms", complete: gameState.matched.length >= Math.min(4, currentKit.flashcards.length) },
     { label: "Sprint", detail: "Fast choices", complete: gameState.sprintIndex >= Math.min(5, currentKit.flashcards.length) },
     { label: "Type", detail: "Recall terms", complete: gameState.typeIndex >= Math.min(4, currentKit.flashcards.length) },
+    { label: "Quest", detail: "Move on the board", complete: gameState.boardIndex >= Math.min(6, currentKit.flashcards.length) },
     { label: "Review", detail: "Schedule weak cards", complete: calculateReadiness() >= 70 }
   ].map((step, index) => `
     <article class="path-step ${step.complete ? "is-complete" : ""}">
@@ -2063,7 +1712,39 @@ function renderGames() {
     return;
   }
 
+  if (gameState.mode === "board") {
+    renderBoardGame();
+    return;
+  }
+
   renderMatchGame();
+}
+
+function renderBoardGame() {
+  const cards = currentKit.flashcards;
+  const card = cards[gameState.boardIndex % cards.length];
+  const steps = Math.min(8, Math.max(4, cards.length));
+  gameBoard.innerHTML = `
+    <div class="game-prompt">
+      <strong>Quest Board</strong>
+      <p>Answer to move across the board. Each square uses your own study terms.</p>
+    </div>
+    <div class="quest-board" style="--quest-steps:${steps}">
+      ${Array.from({ length: steps }, (_, index) => `
+        <div class="quest-square ${index < gameState.boardIndex % (steps + 1) ? "is-complete" : ""} ${index === gameState.boardIndex % steps ? "is-current" : ""}">
+          <span>${index + 1}</span>
+        </div>
+      `).join("")}
+    </div>
+    <div class="type-game">
+      <div class="type-clue">${escapeHtml(card.prompt)}</div>
+      <div class="choice-grid">
+        ${pickChoices(card.term, cards).map((choice) => `
+          <button type="button" data-board-choice="${escapeHtml(choice.toLowerCase())}">${escapeHtml(choice)}</button>
+        `).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderMatchGame() {
@@ -2475,7 +2156,7 @@ function exportKit() {
 
 function exportFlashcardsTsv() {
   if (!currentKit) {
-    showUpgrade("Generate a study kit before exporting flashcards.");
+    showNotice("Generate a study kit before exporting flashcards.");
     return;
   }
   const rows = currentKit.flashcards.map((card) => [
@@ -2506,7 +2187,7 @@ function handleIntegrationAction(action) {
   }
   if (action === "calendar") {
     if (!currentKit) {
-      showUpgrade("Generate a study kit before exporting review events.");
+      showNotice("Generate a study kit before exporting review events.");
       return;
     }
     downloadTextFile("ZentraDeck-review-calendar.ics", makeCalendarExport(), "text/calendar");
@@ -2518,14 +2199,6 @@ function handleIntegrationAction(action) {
   }
   if (action === "payload") {
     copyIntegrationPayload();
-    return;
-  }
-  if (action === "pricing") {
-    showUpgrade("Add Razorpay or Stripe keys before charging users. Donations can work while KYC is pending.");
-    return;
-  }
-  if (action === "donation") {
-    openDonation();
     return;
   }
   if (action === "promo") {
@@ -2558,16 +2231,11 @@ function handleIntegrationAction(action) {
     ].join("\n"));
     return;
   }
-  showUpgrade("This integration needs accounts/OAuth before it can connect for real users.");
+  showNotice("This connector is on the free roadmap.");
 }
 
 function exportObsidianKit() {
   if (!currentKit) {
-    return;
-  }
-
-  if (!hasProAccess()) {
-    showUpgrade("Obsidian export is a Pro feature because it creates reusable vault-ready study notes.");
     return;
   }
 
@@ -2756,7 +2424,7 @@ quizList.addEventListener("click", (event) => {
 
 customQuizBtn.addEventListener("click", () => {
   if (!currentKit) {
-    showUpgrade("Generate a kit first, then build a custom quiz.");
+    showNotice("Generate a kit first, then build a custom quiz.");
     return;
   }
   currentKit.quizMode = customQuizType.value;
@@ -2779,11 +2447,6 @@ customQuizBtn.addEventListener("click", () => {
 document.querySelectorAll(".game-mode").forEach((button) => {
   button.addEventListener("click", () => {
     if (!currentKit) {
-      return;
-    }
-    const premiumGame = button.dataset.gameMode === "sprint" || button.dataset.gameMode === "type";
-    if (premiumGame && !hasProAccess()) {
-      showUpgrade("Pro unlocks Sprint and Type Recall games for faster, more varied practice.");
       return;
     }
     gameState.mode = button.dataset.gameMode;
@@ -2840,6 +2503,18 @@ gameBoard.addEventListener("click", (event) => {
   const typeButton = event.target.closest("#typeGameCheck");
   if (typeButton && currentKit) {
     checkTypeGameAnswer();
+  }
+
+  const boardButton = event.target.closest("button[data-board-choice]");
+  if (boardButton && currentKit) {
+    const cards = currentKit.flashcards;
+    const card = cards[gameState.boardIndex % cards.length];
+    const isCorrect = boardButton.dataset.boardChoice === card.term.toLowerCase();
+    awardGameResult(card.term, isCorrect, 16);
+    if (isCorrect) {
+      gameState.boardIndex += 1;
+    }
+    renderGames();
   }
 });
 
@@ -3109,16 +2784,11 @@ document.querySelectorAll("[data-visual-style]").forEach((button) => {
   button.addEventListener("click", () => {
     visualStyle = button.dataset.visualStyle;
     visualHelp.textContent = `Style set to ${button.textContent}.`;
-    if (hasProAccess()) {
-      renderReferenceImages();
-    }
+    renderReferenceImages();
   });
 });
 
 generateVisualsBtn.addEventListener("click", () => {
-  if (!requirePro("Reference visuals")) {
-    return;
-  }
   renderReferenceImages();
 });
 
@@ -3133,9 +2803,6 @@ referenceGallery.addEventListener("click", (event) => {
 });
 
 async function runResearch() {
-  if (!requirePro("Web research")) {
-    return;
-  }
   if (!requireAccount("Web research")) {
     return;
   }
@@ -3219,7 +2886,6 @@ saveBtn.addEventListener("click", saveKit);
 exportBtn.addEventListener("click", exportKit);
 obsidianBtn.addEventListener("click", exportObsidianKit);
 copyReferralBtn.addEventListener("click", copyReferralLink);
-donateBtn.addEventListener("click", openDonation);
 tutorialBtn.addEventListener("click", () => showTutorial({ force: true }));
 closeTutorialBtn.addEventListener("click", () => hideTutorial());
 tutorialStartBtn.addEventListener("click", () => {
@@ -3258,22 +2924,6 @@ gateAuthPassword.addEventListener("keydown", (event) => {
     authEmail.value = gateAuthEmail.value.trim();
     authPassword.value = gateAuthPassword.value;
     submitAuthCredentials("login", authEmail.value, authPassword.value);
-  }
-});
-upgradeBtn.addEventListener("click", () => showUpgrade("Choose a plan to unlock deeper study sessions."));
-closeUpgradeBtn.addEventListener("click", hideUpgrade);
-upgradeModal.addEventListener("click", (event) => {
-  if (event.target === upgradeModal) {
-    hideUpgrade();
-  }
-  const choice = event.target.closest("button[data-plan-choice]");
-  if (choice) {
-    const plan = choice.dataset.planChoice;
-    if (plan === "free") {
-      setPlan(plan);
-      return;
-    }
-    startCheckout(plan);
   }
 });
 clearBtn.addEventListener("click", () => {

@@ -1,6 +1,6 @@
 # ZentraDeck AI
 
-Luxury AI study app with generated study kits, flashcards, quizzes, games, calculator, assistant chat, Obsidian export, accounts, saved kits, Razorpay, Stripe, and ad monetization.
+Free AI study workspace for turning notes, PDFs, and class material into recall cards, quizzes, games, visual references, review plans, and tutor chat.
 
 ## Run Locally
 
@@ -9,89 +9,48 @@ npm install
 npm start
 ```
 
-Open:
+Open `http://127.0.0.1:4174/index.html`.
 
-```text
-http://127.0.0.1:4174
-```
-
-## Production Environment
-
-Use a Node host such as Render, Railway, Fly.io, DigitalOcean App Platform, or a VPS.
-
-Required for launch with free cloud AI:
+## Environment
 
 ```bash
+PORT=4174
+HOST=0.0.0.0
 PUBLIC_BASE_URL=https://your-domain.com
-MODEL_PROVIDER=compatible
-COMPATIBLE_API_BASE_URL=https://openrouter.ai/api/v1
-COMPATIBLE_API_KEY=sk-or-v1_...
-COMPATIBLE_MODEL=openrouter/free
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PRO_PRICE_ID=price_...
-STRIPE_SCHOOL_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_WEBHOOK_SECRET=...
 DATABASE_PATH=./data/zentradeck-db.json
-ADS_ENABLED=true
-ADSENSE_CLIENT_ID=ca-pub-...
-ADSENSE_SIDEBAR_SLOT=...
-ADSENSE_WORKSPACE_SLOT=...
-DONATION_URL=https://...
-DONATION_UPI_ID=name@bank
+
+MODEL_PROVIDER=gemini
+GEMINI_API_KEY=replace_me
+GEMINI_MODEL=gemini-2.0-flash
+
+MODEL_TIMEOUT_MS=35000
+ADS_ENABLED=false
 ```
 
-## Ads
+Gemini is the default hosted provider. OpenAI-compatible routers and Ollama are still supported for development through `MODEL_PROVIDER=compatible` or `MODEL_PROVIDER=ollama`.
 
-Starter users see AdSense placements when `ADS_ENABLED=true` and the AdSense client/slot IDs are configured. Pro and School users do not see ads.
+## Features
 
-Default hosted AI option:
-
-```bash
-MODEL_PROVIDER=compatible
-COMPATIBLE_API_BASE_URL=https://openrouter.ai/api/v1
-COMPATIBLE_API_KEY=sk-or-v1_...
-COMPATIBLE_MODEL=openrouter/free
-```
-
-OpenAI option:
-
-```bash
-MODEL_PROVIDER=openai
-OPENAI_API_KEY=sk-proj_...
-OPENAI_MODEL=gpt-5-mini
-```
-
-Other OpenAI-compatible API options:
-
-```bash
-# Groq
-COMPATIBLE_API_BASE_URL=https://api.groq.com/openai/v1
-COMPATIBLE_API_KEY=gsk_...
-COMPATIBLE_MODEL=llama-3.1-8b-instant
-
-# Hugging Face or other OpenAI-compatible gateways can use the same variables.
-```
-
-## Donations
-
-If Razorpay/Stripe KYC is not ready, set `DONATION_URL` or `DONATION_UPI_ID`. The app will show a support button without unlocking paid plans.
+- File import for notes, Markdown, text, and PDF material
+- AI tutor chat with local fallback responses
+- Summary, active-recall cards, quizzes, custom quizzes, and review plans
+- Study games including match, order, type, rapid fire, and Quest Board
+- Visual reference generation from study topics
+- Web research lookup for related material
+- Calculator workspace
+- Free account sync for saved kits and progress
+- Obsidian export and collaboration prep
 
 ## Deploy
 
-Render Blueprint is included:
+Use `render.yaml` on Render or any Node-capable host.
 
-```text
-render.yaml
-```
-
-Docker deploy is included:
+Required for hosted AI:
 
 ```bash
-docker build -t zentradeck-ai .
-docker run -p 4174:4174 --env-file .env zentradeck-ai
+MODEL_PROVIDER=gemini
+GEMINI_API_KEY=your_key
+PUBLIC_BASE_URL=https://your-live-site
 ```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full launch checklist.
+The app currently ships as a free product. Payment and upgrade flows are intentionally removed.

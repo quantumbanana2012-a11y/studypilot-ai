@@ -9,9 +9,11 @@ const databasePath = process.env.DATABASE_PATH || path.join(dataDir, "zentradeck
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "0.0.0.0";
 const modelProvider = process.env.MODEL_PROVIDER
-  || (process.env.OPENAI_API_KEY ? "openai" : "compatible");
+  || (process.env.GEMINI_API_KEY ? "gemini" : process.env.OPENAI_API_KEY ? "openai" : "compatible");
 const openaiModel = process.env.OPENAI_MODEL || "gpt-5-mini";
 const openaiApiKey = process.env.OPENAI_API_KEY || "";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const geminiApiKey = process.env.GEMINI_API_KEY || "";
 const compatibleApiBaseUrl = process.env.COMPATIBLE_API_BASE_URL || "https://openrouter.ai/api/v1";
 const compatibleApiKey = process.env.COMPATIBLE_API_KEY || process.env.OPENROUTER_API_KEY || process.env.HUGGINGFACE_API_KEY || "";
 const compatibleModel = process.env.COMPATIBLE_MODEL || "openrouter/free";
@@ -23,22 +25,10 @@ const modelTimeoutMs = Number(process.env.MODEL_TIMEOUT_MS || 35000);
 const ollamaModel = process.env.OLLAMA_MODEL || "qwen3:8b-q4_K_M";
 const ollamaHost = process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://127.0.0.1:${port}`;
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
-const stripeProPriceId = process.env.STRIPE_PRO_PRICE_ID || "";
-const stripeSchoolPriceId = process.env.STRIPE_SCHOOL_PRICE_ID || "";
-const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-const razorpayKeyId = process.env.RAZORPAY_KEY_ID || "";
-const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
-const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
-const razorpayProAmount = Number(process.env.RAZORPAY_PRO_AMOUNT || 19900);
-const razorpaySchoolAmount = Number(process.env.RAZORPAY_SCHOOL_AMOUNT || 9900);
 const adsenseClientId = process.env.ADSENSE_CLIENT_ID || "";
 const adsenseSidebarSlot = process.env.ADSENSE_SIDEBAR_SLOT || "";
 const adsenseWorkspaceSlot = process.env.ADSENSE_WORKSPACE_SLOT || "";
 const adsEnabled = process.env.ADS_ENABLED === "true" || Boolean(adsenseClientId);
-const donationUrl = process.env.DONATION_URL || "";
-const donationUpiId = process.env.DONATION_UPI_ID || "";
-const donationLabel = process.env.DONATION_LABEL || "Support ZentraDeck";
 const conversations = new Map();
 
 function ensureDatabase() {
@@ -93,7 +83,6 @@ function publicUser(user) {
     id: user.id,
     email: user.email,
     plan: user.plan || "free",
-    stripeCustomerId: user.stripeCustomerId || "",
     createdAt: user.createdAt
   };
 }
@@ -123,6 +112,32 @@ function fetchWithTimeout(url, options = {}, timeoutMs = modelTimeoutMs) {
     .finally(() => clearTimeout(timeoutId));
 }
 
+function activeModelName() {
+  if (modelProvider === "openai") {
+    return openaiModel;
+  }
+  if (modelProvider === "gemini") {
+    return geminiModel;
+  }
+  if (modelProvider === "compatible") {
+    return compatibleModel;
+  }
+  return ollamaModel;
+}
+
+function activeModelReady() {
+  if (modelProvider === "openai") {
+    return Boolean(openaiApiKey);
+  }
+  if (modelProvider === "gemini") {
+    return Boolean(geminiApiKey);
+  }
+  if (modelProvider === "compatible") {
+    return Boolean(compatibleApiKey);
+  }
+  return false;
+}
+
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -135,7 +150,7 @@ function sendJson(response, status, payload) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, Stripe-Signature",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
   });
   response.end(JSON.stringify(payload));
@@ -344,12 +359,67 @@ async function runCompatibleAssistant(body, history) {
   throw new Error(`All cloud models failed. ${errors.join(" | ")}`);
 }
 
+async function runGeminiAssistant(body, history) {
+  if (!geminiApiKey) {
+    throw new Error("GEMINI_API_KEY is not configured.");
+  }
+
+  const historyText = compactHistory(history)
+    .map((item) => `${item.role === "assistant" ? "Assistant" : "Student"}: ${item.content}`)
+    .join("\n");
+  const prompt = [
+    systemPrompt(),
+    historyText ? `Recent conversation:\n${historyText}` : "",
+    studyPrompt(body)
+  ].filter(Boolean).join("\n\n");
+
+  const apiResponse = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 900
+        }
+      })
+    }
+  );
+
+  const payload = await apiResponse.json().catch(() => ({}));
+  if (!apiResponse.ok) {
+    throw new Error(payload.error?.message || "Gemini request failed.");
+  }
+
+  const text = (payload.candidates?.[0]?.content?.parts || [])
+    .map((part) => part.text || "")
+    .join("\n")
+    .trim();
+
+  return {
+    text: text || "I could not produce a response.",
+    model: geminiModel,
+    provider: "gemini"
+  };
+}
+
 async function handleAssistant(request, response) {
   const body = JSON.parse(await readBody(request) || "{}");
   const sessionId = body.sessionId || "default";
   const history = conversations.get(sessionId) || [];
   const result = modelProvider === "openai"
     ? await runOpenAiAssistant(body, history)
+    : modelProvider === "gemini"
+      ? await runGeminiAssistant(body, history)
     : modelProvider === "compatible"
       ? await runCompatibleAssistant(body, history)
       : await runOllamaAssistant(body, history);
@@ -390,7 +460,6 @@ async function handleSignup(request, response) {
     email,
     passwordHash: hashPassword(password),
     plan: "free",
-    stripeCustomerId: "",
     createdAt: new Date().toISOString()
   };
   const session = {
@@ -487,229 +556,6 @@ async function handleSaveKit(request, response) {
   sendJson(response, 200, { ok: true, savedAt: new Date().toISOString() });
 }
 
-async function createStripeCheckoutSession(plan, user) {
-  const priceId = plan === "school" ? stripeSchoolPriceId : stripeProPriceId;
-  if (!stripeSecretKey || !priceId) {
-    throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY and Stripe price IDs.");
-  }
-
-  const params = new URLSearchParams();
-  params.set("mode", "subscription");
-  params.set("line_items[0][price]", priceId);
-  params.set("line_items[0][quantity]", "1");
-  params.set("success_url", `${publicBaseUrl}/index.html?billing=success&plan=${encodeURIComponent(plan)}`);
-  params.set("cancel_url", `${publicBaseUrl}/index.html?billing=cancelled`);
-  params.set("metadata[plan]", plan);
-  params.set("metadata[userId]", user?.id || "");
-  params.set("client_reference_id", user?.id || "");
-  params.set("allow_promotion_codes", "true");
-  if (user?.email) {
-    params.set("customer_email", user.email);
-  }
-
-  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${stripeSecretKey}`,
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: params
-  });
-  const payload = await stripeResponse.json();
-  if (!stripeResponse.ok) {
-    throw new Error(payload.error?.message || "Stripe Checkout failed.");
-  }
-  return payload;
-}
-
-async function handleCheckout(request, response) {
-  const body = JSON.parse(await readBody(request) || "{}");
-  const plan = body.plan === "school" ? "school" : "pro";
-  const { user } = findSessionUser(request);
-  if (!user) {
-    sendJson(response, 401, { error: "Create an account before starting checkout." });
-    return;
-  }
-  const session = await createStripeCheckoutSession(plan, user);
-  sendJson(response, 200, {
-    url: session.url,
-    id: session.id
-  });
-}
-
-async function createRazorpayOrder(plan, user) {
-  if (!razorpayKeyId || !razorpayKeySecret) {
-    throw new Error("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
-  }
-  const amount = plan === "school" ? razorpaySchoolAmount : razorpayProAmount;
-  const auth = Buffer.from(`${razorpayKeyId}:${razorpayKeySecret}`).toString("base64");
-  const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${auth}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      amount,
-      currency: "INR",
-      receipt: randomId("receipt").slice(0, 40),
-      notes: {
-        userId: user.id,
-        plan,
-        email: user.email
-      }
-    })
-  });
-  const payload = await razorpayResponse.json();
-  if (!razorpayResponse.ok) {
-    throw new Error(payload.error?.description || "Razorpay order creation failed.");
-  }
-  return payload;
-}
-
-async function handleRazorpayOrder(request, response) {
-  const body = JSON.parse(await readBody(request) || "{}");
-  const plan = body.plan === "school" ? "school" : "pro";
-  const { user } = findSessionUser(request);
-  if (!user) {
-    sendJson(response, 401, { error: "Create an account before starting checkout." });
-    return;
-  }
-  const order = await createRazorpayOrder(plan, user);
-  sendJson(response, 200, {
-    keyId: razorpayKeyId,
-    orderId: order.id,
-    amount: order.amount,
-    currency: order.currency,
-    plan,
-    name: "ZentraDeck AI",
-    description: plan === "school" ? "ZentraDeck School access" : "ZentraDeck Pro access",
-    prefill: {
-      email: user.email
-    }
-  });
-}
-
-function verifyRazorpayPaymentSignature(orderId, paymentId, signature) {
-  if (!razorpayKeySecret || !orderId || !paymentId || !signature) {
-    return false;
-  }
-  const expected = crypto
-    .createHmac("sha256", razorpayKeySecret)
-    .update(`${orderId}|${paymentId}`)
-    .digest("hex");
-  if (expected.length !== signature.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
-}
-
-async function handleRazorpayVerify(request, response) {
-  const body = JSON.parse(await readBody(request) || "{}");
-  const { database, user } = findSessionUser(request);
-  if (!user) {
-    sendJson(response, 401, { error: "Sign in required." });
-    return;
-  }
-  const verified = verifyRazorpayPaymentSignature(
-    body.razorpay_order_id,
-    body.razorpay_payment_id,
-    body.razorpay_signature
-  );
-  if (!verified) {
-    sendJson(response, 400, { error: "Payment signature could not be verified." });
-    return;
-  }
-  user.plan = body.plan === "school" ? "school" : "pro";
-  user.razorpayPaymentId = body.razorpay_payment_id;
-  user.razorpayOrderId = body.razorpay_order_id;
-  writeDatabase(database);
-  sendJson(response, 200, { ok: true, user: publicUser(user) });
-}
-
-function verifyStripeSignature(rawBody, signatureHeader) {
-  if (!stripeWebhookSecret) {
-    return true;
-  }
-  const parts = Object.fromEntries(String(signatureHeader || "")
-    .split(",")
-    .map((item) => item.split("=").map((value) => value.trim()))
-    .filter((item) => item.length === 2));
-  if (!parts.t || !parts.v1) {
-    return false;
-  }
-  const expected = crypto
-    .createHmac("sha256", stripeWebhookSecret)
-    .update(`${parts.t}.${rawBody}`)
-    .digest("hex");
-  if (expected.length !== parts.v1.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(parts.v1));
-}
-
-async function handleStripeWebhook(request, response) {
-  const rawBody = await readBody(request);
-  if (!verifyStripeSignature(rawBody, request.headers["stripe-signature"])) {
-    sendJson(response, 400, { error: "Invalid Stripe signature." });
-    return;
-  }
-  const event = JSON.parse(rawBody || "{}");
-  const object = event.data?.object || {};
-  const database = readDatabase();
-  const userId = object.metadata?.userId || object.client_reference_id || "";
-  const email = String(object.customer_email || object.customer_details?.email || "").toLowerCase();
-  const user = database.users.find((item) => item.id === userId)
-    || database.users.find((item) => item.email === email);
-
-  if (user) {
-    if (event.type === "checkout.session.completed") {
-      user.plan = object.metadata?.plan === "school" ? "school" : "pro";
-      user.stripeCustomerId = object.customer || user.stripeCustomerId || "";
-    }
-    if (event.type === "customer.subscription.deleted" || event.type === "invoice.payment_failed") {
-      user.plan = "free";
-    }
-    if (event.type === "customer.subscription.updated" && object.status && object.status !== "active") {
-      user.plan = "free";
-    }
-    writeDatabase(database);
-  }
-
-  sendJson(response, 200, { received: true, userUpdated: Boolean(user) });
-}
-
-async function handleRazorpayWebhook(request, response) {
-  const rawBody = await readBody(request);
-  if (razorpayWebhookSecret) {
-    const received = request.headers["x-razorpay-signature"] || "";
-    const expected = crypto
-      .createHmac("sha256", razorpayWebhookSecret)
-      .update(rawBody)
-      .digest("hex");
-    if (expected.length !== received.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))) {
-      sendJson(response, 400, { error: "Invalid Razorpay signature." });
-      return;
-    }
-  }
-
-  const event = JSON.parse(rawBody || "{}");
-  const payment = event.payload?.payment?.entity || {};
-  const notes = payment.notes || {};
-  const database = readDatabase();
-  const user = database.users.find((item) => item.id === notes.userId)
-    || database.users.find((item) => item.email === String(notes.email || "").toLowerCase());
-
-  if (user && ["payment.captured", "order.paid"].includes(event.event)) {
-    user.plan = notes.plan === "school" ? "school" : "pro";
-    user.razorpayPaymentId = payment.id || user.razorpayPaymentId || "";
-    user.razorpayOrderId = payment.order_id || user.razorpayOrderId || "";
-    writeDatabase(database);
-  }
-
-  sendJson(response, 200, { received: true, userUpdated: Boolean(user) });
-}
-
 async function handleResearch(request, response) {
   const body = JSON.parse(await readBody(request) || "{}");
   const terms = (body.kit?.terms || []).map((item) => item.term || item).filter(Boolean);
@@ -785,16 +631,9 @@ const server = http.createServer(async (request, response) => {
         ok: true,
         app: "ZentraDeck AI",
         provider: modelProvider,
-        model: modelProvider === "openai" ? openaiModel : modelProvider === "compatible" ? compatibleModel : ollamaModel,
-        modelReady: modelProvider === "openai"
-          ? Boolean(openaiApiKey)
-          : modelProvider === "compatible"
-            ? Boolean(compatibleApiKey)
-            : false,
-        billingReady: Boolean(stripeSecretKey && stripeProPriceId),
-        razorpayReady: Boolean(razorpayKeyId && razorpayKeySecret),
+        model: activeModelName(),
+        modelReady: activeModelReady(),
         adsReady: Boolean(adsEnabled && adsenseClientId),
-        donationReady: Boolean(donationUrl || donationUpiId),
         accountsReady: true,
         database: path.basename(databasePath),
         uptimeSeconds: Math.round(process.uptime())
@@ -856,6 +695,17 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
+      if (modelProvider === "gemini") {
+        sendJson(response, 200, {
+          model: geminiModel,
+          provider: "gemini",
+          ready: Boolean(geminiApiKey),
+          websiteReady: Boolean(geminiApiKey),
+          timeoutMs: modelTimeoutMs
+        });
+        return;
+      }
+
       try {
         const tags = await fetch(`${ollamaHost}/api/tags`);
         const payload = await tags.json();
@@ -879,23 +729,6 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
-    if (request.url === "/api/billing/config") {
-      sendJson(response, 200, {
-        provider: "stripe",
-        ready: Boolean(stripeSecretKey && stripeProPriceId),
-        proReady: Boolean(stripeSecretKey && stripeProPriceId),
-        schoolReady: Boolean(stripeSecretKey && stripeSchoolPriceId),
-        razorpayReady: Boolean(razorpayKeyId && razorpayKeySecret),
-        razorpayKeyId: razorpayKeyId || "",
-        razorpayAmounts: {
-          pro: razorpayProAmount,
-          school: razorpaySchoolAmount,
-          currency: "INR"
-        }
-      });
-      return;
-    }
-
     if (request.url === "/api/ads/config") {
       sendJson(response, 200, {
         provider: "adsense",
@@ -904,41 +737,6 @@ const server = http.createServer(async (request, response) => {
         sidebarSlot: adsenseSidebarSlot,
         workspaceSlot: adsenseWorkspaceSlot
       });
-      return;
-    }
-
-    if (request.url === "/api/donations/config") {
-      sendJson(response, 200, {
-        enabled: Boolean(donationUrl || donationUpiId),
-        url: donationUrl,
-        upiId: donationUpiId,
-        label: donationLabel
-      });
-      return;
-    }
-
-    if (request.url === "/api/billing/checkout" && request.method === "POST") {
-      await handleCheckout(request, response);
-      return;
-    }
-
-    if (request.url === "/api/billing/razorpay/order" && request.method === "POST") {
-      await handleRazorpayOrder(request, response);
-      return;
-    }
-
-    if (request.url === "/api/billing/razorpay/verify" && request.method === "POST") {
-      await handleRazorpayVerify(request, response);
-      return;
-    }
-
-    if (request.url === "/api/billing/webhook" && request.method === "POST") {
-      await handleStripeWebhook(request, response);
-      return;
-    }
-
-    if (request.url === "/api/billing/razorpay/webhook" && request.method === "POST") {
-      await handleRazorpayWebhook(request, response);
       return;
     }
 
@@ -956,7 +754,7 @@ const server = http.createServer(async (request, response) => {
   } catch (error) {
     sendJson(response, 500, {
       error: error.message || "Server error.",
-      model: modelProvider === "openai" ? openaiModel : modelProvider === "compatible" ? compatibleModel : ollamaModel,
+      model: activeModelName(),
       provider: modelProvider
     });
   }
@@ -966,6 +764,7 @@ server.listen(port, host, () => {
   console.log(`ZentraDeck server running on ${host}:${port}`);
   console.log(`Model provider: ${modelProvider}`);
   console.log(`OpenAI model: ${openaiModel}`);
+  console.log(`Gemini model: ${geminiModel}`);
   console.log(`Compatible model: ${compatibleModel}`);
   console.log(`Ollama model: ${ollamaModel}`);
   console.log(`Ollama host: ${ollamaHost}`);

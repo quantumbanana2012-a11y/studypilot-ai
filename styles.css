@@ -434,14 +434,6 @@ input {
   padding: 0 12px;
 }
 
-.premium-action {
-  border-color: #e5c67a;
-  background: #fff8e6;
-  color: var(--gold);
-}
-
-.utility-button.is-locked,
-.game-mode.is-locked,
 select.is-limited {
   border-color: #ead8a4;
   background: #fff8e6;
@@ -1079,11 +1071,6 @@ select.is-limited {
   box-shadow: 0 8px 18px rgba(22, 32, 29, 0.08);
 }
 
-.game-mode.is-locked::after {
-  content: " Pro";
-  font-size: 0.72rem;
-}
-
 .game-board {
   min-height: 330px;
 }
@@ -1137,6 +1124,36 @@ select.is-limited {
 .type-game {
   display: grid;
   gap: 12px;
+}
+
+.quest-board {
+  display: grid;
+  grid-template-columns: repeat(var(--quest-steps, 6), minmax(42px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.quest-square {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.quest-square.is-current {
+  border-color: rgba(232, 198, 124, 0.58);
+  background: rgba(232, 198, 124, 0.16);
+  color: var(--gold);
+}
+
+.quest-square.is-complete {
+  border-color: rgba(103, 209, 154, 0.34);
+  background: rgba(103, 209, 154, 0.12);
+  color: #9ff0bd;
 }
 
 .type-clue {
@@ -1985,9 +2002,6 @@ button:focus-visible {
   color: var(--ink);
 }
 
-.premium-action,
-.utility-button.is-locked,
-.game-mode.is-locked,
 select.is-limited {
   border-color: rgba(232, 198, 124, 0.54);
   background: rgba(232, 198, 124, 0.14);
@@ -2317,7 +2331,6 @@ button:hover {
   margin-top: 16px;
 }
 
-.donation-panel .primary-button,
 .referral-panel .ghost-button {
   width: 100%;
 }

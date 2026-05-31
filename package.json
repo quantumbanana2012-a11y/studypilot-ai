@@ -2,7 +2,7 @@
   "name": "zentradeck-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "AI study app with tutoring, games, review, Razorpay, Stripe, and ad monetization.",
+  "description": "Free AI study app with tutoring, games, review, file import, and hosted model support.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
